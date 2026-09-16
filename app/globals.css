@@ -1,0 +1,68 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../vendor/shadcn-tailwind-4.13.0.css";
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #bdcbc6 transparent;
+}
+
+:root {
+  --app-bg: #f3f6f4;
+  --background: #ffffff;
+  --foreground: #14211d;
+  --ink: #14211d;
+  --panel: #f5f7f6;
+  --muted: #71807a;
+  --mint: #73e6c2;
+  --card: #ffffff;
+  --card-foreground: #14211d;
+  --popover: #ffffff;
+  --popover-foreground: #14211d;
+  --primary: #0d1b17;
+  --primary-foreground: #edfff9;
+  --secondary: #e7f3ef;
+  --secondary-foreground: #173a30;
+  --muted-foreground: #71807a;
+  --accent: #e2f5ef;
+  --accent-foreground: #12352b;
+  --destructive: #cf3c4f;
+  --border: #dfe7e3;
+  --line: #dfe7e3;
+  --input: #cbd8d3;
+  --ring: #55a990;
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: #eef2f0;
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 5px);
+  --font-sans: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
+  --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+}
+
+* { border-color: var(--border); }
+html { background: var(--app-bg); }
+body { margin: 0; background: var(--app-bg); color: var(--foreground); font-family: var(--font-sans); text-rendering: optimizeLegibility; }
+button, label { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, label:focus-visible { outline: 3px solid rgba(85, 169, 144, 0.35); outline-offset: 2px; }
