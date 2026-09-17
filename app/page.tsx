@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-type KnowledgeDocument = { id: string; title: string; type: "PDF" | "DOC" | "TXT"; pages: number; updated: string; content: string; accent: string };
+type KnowledgeDocument = { id: string; title: string; type: "PDF" | "DOC" | "TXT"; pages: number; updated: string; content: string; accent: string; dataBase64?: string; mimeType?: string };
 type Source = { documentId: string; title: string; excerpt: string; location: string; score: number };
 type Message = { id: string; role: "assistant" | "user"; content: string; sources?: Source[] };
 type ModelTool = { name: string; title: string; description: string; inputSchema: Record<string, unknown>; annotations?: { readOnlyHint?: boolean; untrustedContentHint?: boolean }; execute: (input: unknown) => unknown | Promise<unknown> };
@@ -29,34 +29,12 @@ const initialDocuments: KnowledgeDocument[] = [
 
 const suggestedQuestions = ["Quanto tempo dura o onboarding?", "Qual é o limite de reembolso da internet?", "Quais são as metas do terceiro trimestre?"];
 
-const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((word) => word.length > 2 && !["que", "com", "para", "uma", "das", "dos", "qual", "quais", "como"].includes(word));
-
-function retrieve(question: string, documents: KnowledgeDocument[]) {
-  const terms = normalize(question);
-  const ranked = documents.map((knowledgeDocument) => {
-    const sentences = knowledgeDocument.content.split(/(?<=[.!?])\s+/).filter(Boolean).map((excerpt, index) => {
-      const excerptTerms = new Set(normalize(excerpt));
-      const matches = terms.filter((term) => excerptTerms.has(term));
-      return { excerpt, index, matches: matches.length };
-    });
-    const documentTerms = new Set(normalize(knowledgeDocument.content));
-    const score = terms.filter((term) => documentTerms.has(term)).length / Math.max(terms.length, 1);
-    const bestSentences = sentences.filter((item) => item.matches > 0).sort((a, b) => b.matches - a.matches).slice(0, 2).sort((a, b) => a.index - b.index);
-    return { document: knowledgeDocument, score, bestSentences };
-  }).sort((a, b) => b.score - a.score);
-  const best = ranked[0];
-  if (!best || best.score === 0 || !best.bestSentences.length) return { answer: "Não encontrei uma resposta segura nos documentos disponíveis. Tente reformular a pergunta ou adicione um arquivo com esse assunto.", sources: [] };
-  const sources: Source[] = ranked.filter((item) => item.score >= Math.max(0.34, best.score * 0.7) && item.bestSentences.length).slice(0, 2).map((item) => ({
-    documentId: item.document.id,
-    title: item.document.title,
-    excerpt: item.bestSentences.map((sentence) => sentence.excerpt).join(" "),
-    location: `${item.document.type} · ${item.bestSentences.length === 1 ? `trecho ${item.bestSentences[0].index + 1}` : "2 trechos relacionados"}`,
-    score: item.score,
-  }));
-  const answerText = best.bestSentences.map((sentence) => sentence.excerpt).join(" ");
-  const prefix = best.score >= 0.5 ? "Encontrei isto nos documentos:" : "O trecho mais relacionado que encontrei diz:";
-  return { answer: `${prefix} ${answerText}`, sources };
-}
+const fileToBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+  reader.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+  reader.readAsDataURL(file);
+});
 
 export default function Home() {
   const [documents, setDocuments] = useState(initialDocuments);
@@ -74,11 +52,24 @@ export default function Home() {
     setMessages((current) => [...current, { id: `user-${Date.now()}`, role: "user", content: cleanQuestion }]);
     setQuestion("");
     setIsThinking(true);
-    await new Promise((resolve) => window.setTimeout(resolve, 520));
-    const result = retrieve(cleanQuestion, activeDocuments);
-    setMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: "assistant", content: result.answer, sources: result.sources }]);
-    setIsThinking(false);
-    return result;
+    try {
+      const response = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: cleanQuestion, documents: activeDocuments.map(({ id, title, type, content, dataBase64, mimeType }) => ({ id, title, type, content, dataBase64, mimeType })) }),
+      });
+      const result = await response.json() as { answer?: string; sources?: Source[]; error?: string };
+      if (!response.ok || !result.answer) throw new Error(result.error || "Não foi possível obter uma resposta.");
+      const completed = { answer: result.answer, sources: result.sources ?? [] };
+      setMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: "assistant", content: completed.answer, sources: completed.sources }]);
+      return completed;
+    } catch (error) {
+      const content = error instanceof Error ? error.message : "Não foi possível consultar o Gemini agora.";
+      setMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: "assistant", content }]);
+      return { answer: content, sources: [] };
+    } finally {
+      setIsThinking(false);
+    }
   }, [activeDocuments, isThinking]);
 
   useEffect(() => {
@@ -106,8 +97,14 @@ export default function Home() {
   const onSubmit = (event: FormEvent) => { event.preventDefault(); void ask(question) };
   const onFile = async (file?: File) => {
     if (!file) return;
-    const content = await file.text();
-    const newDocument: KnowledgeDocument = { id: `upload-${Date.now()}`, title: file.name.replace(/\.(txt|md)$/i, ""), type: "TXT", pages: Math.max(1, Math.ceil(content.length / 2200)), updated: "Agora", content, accent: "#F08AC5" };
+    if (file.size > 6_000_000) {
+      setMessages((current) => [...current, { id: `file-error-${Date.now()}`, role: "assistant", content: "Esse arquivo é maior que 6 MB. Para esta demonstração, escolha um documento menor." }]);
+      return;
+    }
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const content = isPdf ? "" : await file.text();
+    const dataBase64 = isPdf ? await fileToBase64(file) : undefined;
+    const newDocument: KnowledgeDocument = { id: `upload-${Date.now()}`, title: file.name.replace(/\.(txt|md|pdf)$/i, ""), type: isPdf ? "PDF" : "TXT", pages: isPdf ? 1 : Math.max(1, Math.ceil(content.length / 2200)), updated: "Agora", content, dataBase64, mimeType: isPdf ? "application/pdf" : file.type, accent: "#F08AC5" };
     setDocuments((current) => [newDocument, ...current]);
     setSelectedDocument(newDocument.id);
     setMessages((current) => [...current, { id: `upload-${Date.now()}`, role: "assistant", content: `“${newDocument.title}” foi adicionado. Agora vou usar apenas esse arquivo nas próximas respostas.` }]);
@@ -121,7 +118,7 @@ export default function Home() {
           <div><p className="text-[15px] font-semibold tracking-[-0.02em]">Lumina</p><p className="text-[11px] text-white/45">knowledge assistant</p></div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          <span className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60 sm:inline-flex">MVP · busca contextual local</span>
+          <span className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60 sm:inline-flex">Gemini · consulta semântica</span>
           <button className="grid size-9 place-items-center rounded-full border border-white/10 bg-white/8 text-sm font-semibold" aria-label="Perfil de Bruna">BE</button>
         </div>
       </header>
@@ -131,7 +128,7 @@ export default function Home() {
           <div className="mb-5 flex items-center justify-between">
             <div><p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">Biblioteca</p><p className="mt-1 text-sm text-[var(--muted)]">{documents.length} documentos</p></div>
             <Button variant="outline" size="icon" className="rounded-xl border-[var(--line)] bg-white" aria-label="Adicionar documento" asChild><label htmlFor="file-upload"><Plus className="size-4" /></label></Button>
-            <Input id="file-upload" type="file" accept=".txt,.md,text/plain,text/markdown" className="sr-only" onChange={(event) => void onFile(event.target.files?.[0])} />
+            <Input id="file-upload" type="file" accept=".txt,.md,.pdf,text/plain,text/markdown,application/pdf" className="sr-only" onChange={(event) => void onFile(event.target.files?.[0])} />
           </div>
 
           <button onClick={() => setSelectedDocument(null)} className={`mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${selectedDocument === null ? "bg-[#101b18] text-white shadow-lg shadow-black/8" : "text-[var(--ink)] hover:bg-black/[.035]"}`}>
@@ -151,7 +148,7 @@ export default function Home() {
           </div>
 
           <div className="mt-5 rounded-2xl border border-dashed border-[#b9cec7] bg-[#edf7f3] p-4">
-            <Upload className="mb-3 size-5 text-[#1d7e64]" /><p className="text-sm font-semibold">Adicione seu conteúdo</p><p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">Nesta versão, envie arquivos TXT ou Markdown para testar a busca local.</p>
+            <Upload className="mb-3 size-5 text-[#1d7e64]" /><p className="text-sm font-semibold">Adicione seu conteúdo</p><p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">Envie PDF, TXT ou Markdown de até 6 MB para consultar com o Gemini.</p>
             <Button asChild variant="outline" size="sm" className="mt-3 w-full rounded-lg border-[#b9cec7] bg-white text-xs"><label htmlFor="file-upload">Escolher arquivo</label></Button>
           </div>
         </aside>
@@ -184,7 +181,7 @@ export default function Home() {
                 <Textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void ask(question) } }} placeholder="Pergunte algo sobre seus documentos…" className="min-h-[64px] resize-none border-0 bg-transparent px-3 py-2 text-[15px] shadow-none focus-visible:ring-0" aria-label="Pergunta para a base de conhecimento" />
                 <div className="flex items-center justify-between px-2 pb-1"><span className="text-[11px] text-[var(--muted)]">Enter para enviar · Shift + Enter para quebrar linha</span><Button type="submit" size="icon" disabled={!question.trim() || isThinking} className="size-9 rounded-xl bg-[#0d1b17] text-[var(--mint)] hover:bg-[#1a3029]" aria-label="Enviar pergunta"><ArrowUp className="size-4" /></Button></div>
               </div>
-              <p className="mt-2 text-center text-[11px] text-[var(--muted)]">O MVP usa busca contextual local. A geração por LLM será conectada na próxima etapa.</p>
+              <p className="mt-2 text-center text-[11px] text-[var(--muted)]">O Gemini responde somente com base nos documentos selecionados. Evite arquivos confidenciais nesta demonstração.</p>
             </form>
           </div>
         </section>
