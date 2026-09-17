@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-type KnowledgeDocument = { id: string; title: string; type: "PDF" | "DOC" | "TXT"; pages: number; updated: string; content: string; accent: string; dataBase64?: string; mimeType?: string };
+type KnowledgeDocument = { id: string; title: string; type: "PDF" | "DOCX" | "TXT"; pages: number; updated: string; content: string; accent: string; dataBase64?: string; mimeType?: string };
 type Source = { documentId: string; title: string; excerpt: string; location: string; score: number };
 type Message = { id: string; role: "assistant" | "user"; content: string; sources?: Source[] };
 type ModelTool = { name: string; title: string; description: string; inputSchema: Record<string, unknown>; annotations?: { readOnlyHint?: boolean; untrustedContentHint?: boolean }; execute: (input: unknown) => unknown | Promise<unknown> };
@@ -19,7 +19,7 @@ const initialDocuments: KnowledgeDocument[] = [
     content: "O onboarding dura duas semanas. No primeiro dia, a pessoa recebe os acessos essenciais, conhece sua liderança e revisa o plano de 30 dias. Na primeira semana, participa de sessões com Produto, Engenharia e Suporte. O buddy acompanha dúvidas operacionais e realiza checkpoints nos dias 3, 7 e 14. Ao final da segunda semana, liderança e colaborador revisam entregas iniciais, bloqueios e próximos objetivos.",
   },
   {
-    id: "remote", title: "Política de trabalho remoto", type: "DOC", pages: 9, updated: "Ontem, 16:18", accent: "#A9B8FF",
+    id: "remote", title: "Política de trabalho remoto", type: "DOCX", pages: 9, updated: "Ontem, 16:18", accent: "#A9B8FF",
     content: "O trabalho remoto é permitido em todo o território nacional. Cada equipe define uma janela de colaboração de quatro horas entre 10h e 17h no horário de Brasília. Reuniões devem ter pauta, responsável e registro de decisões. Despesas de internet podem ser reembolsadas em até R$ 150 por mês mediante comprovante. Equipamentos corporativos devem usar autenticação multifator e bloqueio automático.",
   },
   {
@@ -105,13 +105,28 @@ export default function Home() {
       setMessages((current) => [...current, { id: `file-error-${Date.now()}`, role: "assistant", content: "Esse arquivo é maior que 6 MB. Para esta demonstração, escolha um documento menor." }]);
       return;
     }
-    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    const content = isPdf ? "" : await file.text();
-    const dataBase64 = isPdf ? await fileToBase64(file) : undefined;
-    const newDocument: KnowledgeDocument = { id: `upload-${Date.now()}`, title: file.name.replace(/\.(txt|md|pdf)$/i, ""), type: isPdf ? "PDF" : "TXT", pages: isPdf ? 1 : Math.max(1, Math.ceil(content.length / 2200)), updated: "Agora", content, dataBase64, mimeType: isPdf ? "application/pdf" : file.type, accent: "#F08AC5" };
-    setDocuments((current) => [newDocument, ...current]);
-    setSelectedDocument(newDocument.id);
-    setMessages((current) => [...current, { id: `upload-${Date.now()}`, role: "assistant", content: `“${newDocument.title}” foi adicionado. Agora vou usar apenas esse arquivo nas próximas respostas.` }]);
+    const filename = file.name.toLowerCase();
+    const isPdf = file.type === "application/pdf" || filename.endsWith(".pdf");
+    const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || filename.endsWith(".docx");
+    try {
+      let content = "";
+      if (isDocx) {
+        const mammoth = await import("mammoth");
+        const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+        content = result.value.trim();
+        if (!content) throw new Error("Não encontrei texto legível nesse arquivo Word.");
+      } else if (!isPdf) {
+        content = await file.text();
+      }
+      const dataBase64 = isPdf ? await fileToBase64(file) : undefined;
+      const newDocument: KnowledgeDocument = { id: `upload-${Date.now()}`, title: file.name.replace(/\.(txt|md|pdf|docx)$/i, ""), type: isPdf ? "PDF" : isDocx ? "DOCX" : "TXT", pages: isPdf ? 1 : Math.max(1, Math.ceil(content.length / 2200)), updated: "Agora", content, dataBase64, mimeType: isPdf ? "application/pdf" : file.type, accent: "#F08AC5" };
+      setDocuments((current) => [newDocument, ...current]);
+      setSelectedDocument(newDocument.id);
+      setMessages((current) => [...current, { id: `upload-${Date.now()}`, role: "assistant", content: `“${newDocument.title}” foi adicionado. Agora vou usar apenas esse arquivo nas próximas respostas.` }]);
+    } catch (error) {
+      const content = error instanceof Error ? error.message : "Não foi possível ler esse arquivo.";
+      setMessages((current) => [...current, { id: `file-error-${Date.now()}`, role: "assistant", content }]);
+    }
   };
 
   return (
@@ -133,7 +148,7 @@ export default function Home() {
           <div className="mb-5 flex items-center justify-between">
             <div><p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">Biblioteca</p><p className="mt-1 text-sm text-[var(--muted)]">{documents.length} documentos</p></div>
             <Button variant="outline" size="icon" className="rounded-xl border-[var(--line)] bg-white" aria-label="Adicionar documento" asChild><label htmlFor="file-upload"><Plus className="size-4" /></label></Button>
-            <Input id="file-upload" type="file" accept=".txt,.md,.pdf,text/plain,text/markdown,application/pdf" className="sr-only" onChange={(event) => void onFile(event.target.files?.[0])} />
+            <Input id="file-upload" type="file" accept=".txt,.md,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="sr-only" onChange={(event) => void onFile(event.target.files?.[0])} />
           </div>
 
           <button onClick={() => setSelectedDocument(null)} className={`mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${selectedDocument === null ? "bg-[#101b18] text-white shadow-lg shadow-black/8" : "text-[var(--ink)] hover:bg-black/[.035]"}`}>
@@ -153,7 +168,7 @@ export default function Home() {
           </div>
 
           <div className="mt-5 rounded-2xl border border-dashed border-[#b9cec7] bg-[#edf7f3] p-4">
-            <Upload className="mb-3 size-5 text-[#1d7e64]" /><p className="text-sm font-semibold">Adicione seu conteúdo</p><p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">Envie PDF, TXT ou Markdown de até 6 MB para consultar com o Gemini.</p>
+            <Upload className="mb-3 size-5 text-[#1d7e64]" /><p className="text-sm font-semibold">Adicione seu conteúdo</p><p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">Envie PDF, Word (.docx), TXT ou Markdown de até 6 MB para consultar com o Gemini.</p>
             <Button asChild variant="outline" size="sm" className="mt-3 w-full rounded-lg border-[#b9cec7] bg-white text-xs"><label htmlFor="file-upload">Escolher arquivo</label></Button>
             <p className="mt-3 border-t border-[#cfe1db] pt-3 text-[11px] leading-relaxed text-[#60746d]">O arquivo fica apenas nesta sessão e é removido quando a página é atualizada.</p>
           </div>
@@ -214,7 +229,7 @@ export default function Home() {
           </div>
           <div className="grid gap-4 px-6 pb-7 sm:grid-cols-2 sm:px-8">
             <article className="rounded-2xl border border-[#dfe9e5] bg-[#f7faf9] p-4"><BookOpenText className="size-5 text-[#237e68]" /><h2 className="mt-3 text-sm font-semibold">Problema</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">Encontrar uma informação específica em documentos extensos consome tempo e exige leitura manual.</p></article>
-            <article className="rounded-2xl border border-[#dfe9e5] bg-[#f7faf9] p-4"><Languages className="size-5 text-[#237e68]" /><h2 className="mt-3 text-sm font-semibold">Solução</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">O Gemini interpreta PDF, TXT e Markdown, responde no idioma da pergunta e mostra os trechos utilizados.</p></article>
+            <article className="rounded-2xl border border-[#dfe9e5] bg-[#f7faf9] p-4"><Languages className="size-5 text-[#237e68]" /><h2 className="mt-3 text-sm font-semibold">Solução</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">O Gemini interpreta PDF, Word (.docx), TXT e Markdown, responde no idioma da pergunta e mostra os trechos utilizados.</p></article>
             <article className="rounded-2xl border border-[#dfe9e5] bg-[#f7faf9] p-4"><Code2 className="size-5 text-[#237e68]" /><h2 className="mt-3 text-sm font-semibold">Tecnologias</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">React, TypeScript, Gemini API, processamento server-side e hospedagem em Cloudflare Workers.</p></article>
             <article className="rounded-2xl border border-[#dfe9e5] bg-[#f7faf9] p-4"><ShieldCheck className="size-5 text-[#237e68]" /><h2 className="mt-3 text-sm font-semibold">Desafios resolvidos</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">Proteção da chave de API, respostas baseadas apenas no documento, fontes rastreáveis e controle da cota gratuita.</p></article>
           </div>

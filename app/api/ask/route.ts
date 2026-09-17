@@ -3,7 +3,7 @@ import { env } from "cloudflare:workers";
 type RequestDocument = {
   id: string;
   title: string;
-  type: "PDF" | "DOC" | "TXT";
+  type: "PDF" | "DOCX" | "TXT";
   content?: string;
   dataBase64?: string;
   mimeType?: string;
