@@ -15,15 +15,15 @@ type ModelContextDocument = Document & { modelContext?: { registerTool: (tool: M
 
 const initialDocuments: KnowledgeDocument[] = [
   {
-    id: "onboarding", title: "Manual de onboarding", type: "PDF", pages: 18, updated: "Hoje, 09:42", accent: "#73E6C2",
+    id: "onboarding", title: "Manual de onboarding", type: "PDF", pages: 18, updated: "Hoje, 09:42", accent: "#6E65F7",
     content: "O onboarding dura duas semanas. No primeiro dia, a pessoa recebe os acessos essenciais, conhece sua liderança e revisa o plano de 30 dias. Na primeira semana, participa de sessões com Produto, Engenharia e Suporte. O buddy acompanha dúvidas operacionais e realiza checkpoints nos dias 3, 7 e 14. Ao final da segunda semana, liderança e colaborador revisam entregas iniciais, bloqueios e próximos objetivos.",
   },
   {
-    id: "remote", title: "Política de trabalho remoto", type: "DOCX", pages: 9, updated: "Ontem, 16:18", accent: "#A9B8FF",
+    id: "remote", title: "Política de trabalho remoto", type: "DOCX", pages: 9, updated: "Ontem, 16:18", accent: "#38A5FF",
     content: "O trabalho remoto é permitido em todo o território nacional. Cada equipe define uma janela de colaboração de quatro horas entre 10h e 17h no horário de Brasília. Reuniões devem ter pauta, responsável e registro de decisões. Despesas de internet podem ser reembolsadas em até R$ 150 por mês mediante comprovante. Equipamentos corporativos devem usar autenticação multifator e bloqueio automático.",
   },
   {
-    id: "product", title: "Guia de produto — Q3", type: "PDF", pages: 24, updated: "12 set, 11:30", accent: "#F4C86B",
+    id: "product", title: "Guia de produto — Q3", type: "PDF", pages: 24, updated: "12 set, 11:30", accent: "#B64DFF",
     content: "As prioridades do terceiro trimestre são reduzir o tempo até o primeiro valor, melhorar a busca e aumentar a confiança nas respostas. O indicador principal é a taxa de respostas úteis. Metas: reduzir o onboarding de 12 para 7 minutos, alcançar 85% de avaliações positivas e exibir fontes em 100% das respostas. A equipe também acompanhará tempo de resposta e custo por consulta.",
   },
 ];
@@ -130,10 +130,10 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[var(--app-bg)] text-[var(--ink)]">
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/8 bg-[#09100e]/90 px-4 text-white backdrop-blur-xl sm:px-7">
+    <main className="ambient-shell min-h-screen bg-[var(--app-bg)] text-[var(--ink)]">
+      <header className="brand-header sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/15 px-4 text-white backdrop-blur-xl sm:px-7">
         <div className="flex items-center gap-3">
-          <div className="grid size-9 place-items-center rounded-xl bg-[var(--mint)] text-[#07110d] shadow-[0_0_30px_rgba(115,230,194,.16)]"><Sparkles className="size-[18px]" aria-hidden="true" /></div>
+          <div className="brand-mark grid size-9 place-items-center rounded-xl text-[#5741c7]"><Sparkles className="size-[18px]" aria-hidden="true" /></div>
           <div><p className="text-[15px] font-semibold tracking-[-0.02em]">Bruna Docs</p><p className="text-[11px] text-white/45">assistente de documentos</p></div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
@@ -151,60 +151,60 @@ export default function Home() {
             <Input id="file-upload" type="file" accept=".txt,.md,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="sr-only" onChange={(event) => void onFile(event.target.files?.[0])} />
           </div>
 
-          <button onClick={() => setSelectedDocument(null)} className={`mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${selectedDocument === null ? "bg-[#101b18] text-white shadow-lg shadow-black/8" : "text-[var(--ink)] hover:bg-black/[.035]"}`}>
-            <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${selectedDocument === null ? "bg-[var(--mint)] text-[#07110d]" : "bg-white"}`}><FolderOpen className="size-[17px]" /></span>
+          <button onClick={() => setSelectedDocument(null)} className={`mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${selectedDocument === null ? "bg-gradient-to-r from-[#7457f5] to-[#3975f7] text-white shadow-[0_12px_30px_rgba(92,73,224,.25)]" : "text-[var(--ink)] hover:bg-[#eceaff]"}`}>
+            <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${selectedDocument === null ? "bg-white/20 text-white" : "bg-white"}`}><FolderOpen className="size-[17px]" /></span>
             <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Todos os documentos</span><span className={`block text-xs ${selectedDocument === null ? "text-white/50" : "text-[var(--muted)]"}`}>Consultar a biblioteca inteira</span></span>
-            {selectedDocument === null && <Check className="size-4 text-[var(--mint)]" />}
+            {selectedDocument === null && <Check className="size-4 text-white" />}
           </button>
 
           <div className="grid gap-1.5 sm:grid-cols-3 lg:grid-cols-1">
             {documents.map((item) => {
               const selected = selectedDocument === item.id;
-              return <button key={item.id} onClick={() => setSelectedDocument(selected ? null : item.id)} className={`group flex min-w-0 items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${selected ? "border-[#bddfd5] bg-white shadow-[0_8px_30px_rgba(15,30,25,.06)]" : "border-transparent hover:border-[var(--line)] hover:bg-white/70"}`}>
+              return <button key={item.id} onClick={() => setSelectedDocument(selected ? null : item.id)} className={`group flex min-w-0 items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${selected ? "border-[#bcb5ff] bg-white shadow-[0_10px_30px_rgba(100,78,225,.12)]" : "border-transparent hover:border-[var(--line)] hover:bg-white/75"}`}>
                 <span className="relative grid size-10 shrink-0 place-items-center rounded-lg bg-white shadow-sm"><FileText className="size-[18px]" /><span className="absolute bottom-1 right-1 size-1.5 rounded-full" style={{ background: item.accent }} /></span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{item.title}</span><span className="mt-0.5 block text-[11px] text-[var(--muted)]">{item.type} · {item.pages} pág.</span></span>
               </button>;
             })}
           </div>
 
-          <div className="mt-5 rounded-2xl border border-dashed border-[#b9cec7] bg-[#edf7f3] p-4">
-            <Upload className="mb-3 size-5 text-[#1d7e64]" /><p className="text-sm font-semibold">Adicione seu conteúdo</p><p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">Envie PDF, Word (.docx), TXT ou Markdown de até 6 MB para consultar com o Gemini.</p>
-            <Button asChild variant="outline" size="sm" className="mt-3 w-full rounded-lg border-[#b9cec7] bg-white text-xs"><label htmlFor="file-upload">Escolher arquivo</label></Button>
-            <p className="mt-3 border-t border-[#cfe1db] pt-3 text-[11px] leading-relaxed text-[#60746d]">O arquivo fica apenas nesta sessão e é removido quando a página é atualizada.</p>
+          <div className="mt-5 rounded-2xl border border-dashed border-[#b9b2ff] bg-gradient-to-br from-[#efedff] to-[#ecf7ff] p-4 shadow-[0_12px_35px_rgba(95,78,214,.08)]">
+            <Upload className="mb-3 size-5 text-[#654fe3]" /><p className="text-sm font-semibold">Adicione seu conteúdo</p><p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">Envie PDF, Word (.docx), TXT ou Markdown de até 6 MB para consultar com o Gemini.</p>
+            <Button asChild variant="outline" size="sm" className="mt-3 w-full rounded-lg border-[#c2bcff] bg-white text-xs text-[#5142ba] hover:bg-[#f4f2ff]"><label htmlFor="file-upload">Escolher arquivo</label></Button>
+            <p className="mt-3 border-t border-[#d5d1ff] pt-3 text-[11px] leading-relaxed text-[#67647f]">O arquivo fica apenas nesta sessão e é removido quando a página é atualizada.</p>
           </div>
         </aside>
 
         <section className="flex min-h-[760px] flex-col bg-white">
           <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4 sm:px-8">
-            <div className="min-w-0"><div className="flex items-center gap-2"><BookOpenText className="size-4 text-[#237e68]" /><h1 className="truncate text-base font-semibold tracking-[-0.02em]">Consulta à base de conhecimento</h1></div><p className="mt-1 truncate text-xs text-[var(--muted)]">{selectedDocument ? "Usando 1 documento selecionado" : `Usando todos os ${documents.length} documentos`}</p></div>
+            <div className="min-w-0"><div className="flex items-center gap-2"><BookOpenText className="size-4 text-[#6755de]" /><h1 className="truncate text-base font-semibold tracking-[-0.02em]">Consulta à base de conhecimento</h1></div><p className="mt-1 truncate text-xs text-[var(--muted)]">{selectedDocument ? "Usando 1 documento selecionado" : `Usando todos os ${documents.length} documentos`}</p></div>
             <Button variant="ghost" size="icon" className="rounded-xl xl:hidden" onClick={() => setShowSources((value) => !value)} aria-label="Mostrar fontes"><PanelRight className="size-4" /></Button>
           </div>
 
-          <div className="border-b border-[#dce9e4] bg-[#f1faf7] px-5 py-3 sm:px-8">
-            <div className="mx-auto flex max-w-3xl items-start gap-3 text-xs leading-relaxed text-[#45655b]"><BriefcaseBusiness className="mt-0.5 size-4 shrink-0 text-[#237e68]" /><p><strong className="font-semibold text-[#24483e]">Demonstração de portfólio.</strong> Este projeto foi desenvolvido exclusivamente para apresentar habilidades em IA e desenvolvimento web. As consultas são limitadas pela cota gratuita do Gemini e podem ficar temporariamente indisponíveis quando o limite é atingido.</p></div>
+          <div className="border-b border-[#ddd9ff] bg-gradient-to-r from-[#f1efff] via-[#f5f4ff] to-[#edf8ff] px-5 py-3 sm:px-8">
+            <div className="mx-auto flex max-w-3xl items-start gap-3 text-xs leading-relaxed text-[#575477]"><BriefcaseBusiness className="mt-0.5 size-4 shrink-0 text-[#6755de]" /><p><strong className="font-semibold text-[#3f3789]">Demonstração de portfólio.</strong> Este projeto foi desenvolvido exclusivamente para apresentar habilidades em IA e desenvolvimento web. As consultas são limitadas pela cota gratuita do Gemini e podem ficar temporariamente indisponíveis quando o limite é atingido.</p></div>
           </div>
 
           <div className="scrollbar-thin flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
             <div className="mx-auto max-w-3xl space-y-6">
               {messages.map((message) => <article key={message.id} className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                {message.role === "assistant" && <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-[#0c1714] text-[var(--mint)]"><Sparkles className="size-4" /></div>}
-                <div className={`max-w-[82%] ${message.role === "user" ? "rounded-[20px_20px_6px_20px] bg-[#0d1b17] px-4 py-3 text-white" : "pt-1"}`}>
-                  <p className={`text-[15px] leading-7 ${message.role === "assistant" ? "text-[#26332f]" : "text-white/90"}`}>{message.content}</p>
-                  {!!message.sources?.length && <div className="mt-4 flex flex-wrap gap-2">{message.sources.map((source, index) => <button key={`${message.id}-${source.documentId}`} onClick={() => setSelectedDocument(source.documentId)} className="inline-flex items-center gap-2 rounded-full border border-[#cfe1db] bg-[#f4faf8] px-3 py-1.5 text-xs font-medium text-[#246f5d] hover:bg-[#e8f6f1]"><span className="grid size-4 place-items-center rounded-full bg-[#d5f2e8] text-[10px]">{index + 1}</span>{source.title}</button>)}</div>}
+                {message.role === "assistant" && <div className="gradient-action grid size-8 shrink-0 place-items-center rounded-xl text-white"><Sparkles className="size-4" /></div>}
+                <div className={`max-w-[82%] ${message.role === "user" ? "rounded-[20px_20px_6px_20px] bg-gradient-to-br from-[#7658f4] to-[#3476f7] px-4 py-3 text-white shadow-[0_10px_28px_rgba(91,72,220,.22)]" : "pt-1"}`}>
+                  <p className={`text-[15px] leading-7 ${message.role === "assistant" ? "text-[#302f48]" : "text-white/95"}`}>{message.content}</p>
+                  {!!message.sources?.length && <div className="mt-4 flex flex-wrap gap-2">{message.sources.map((source, index) => <button key={`${message.id}-${source.documentId}`} onClick={() => setSelectedDocument(source.documentId)} className="inline-flex items-center gap-2 rounded-full border border-[#cbc6ff] bg-[#f5f3ff] px-3 py-1.5 text-xs font-medium text-[#5747c0] hover:bg-[#ece9ff]"><span className="grid size-4 place-items-center rounded-full bg-[#ddd8ff] text-[10px]">{index + 1}</span>{source.title}</button>)}</div>}
                 </div>
               </article>)}
 
-              {isThinking && <div className="flex items-center gap-3" aria-live="polite"><div className="grid size-8 place-items-center rounded-xl bg-[#0c1714] text-[var(--mint)]"><Sparkles className="size-4 animate-pulse" /></div><div className="flex gap-1.5 rounded-full bg-[var(--panel)] px-4 py-3">{[0, 1, 2].map((dot) => <span key={dot} className="size-1.5 animate-pulse rounded-full bg-[#5b756d]" style={{ animationDelay: `${dot * 120}ms` }} />)}</div></div>}
+              {isThinking && <div className="flex items-center gap-3" aria-live="polite"><div className="gradient-action grid size-8 place-items-center rounded-xl text-white"><Sparkles className="size-4 animate-pulse" /></div><div className="flex gap-1.5 rounded-full bg-[var(--panel)] px-4 py-3">{[0, 1, 2].map((dot) => <span key={dot} className="size-1.5 animate-pulse rounded-full bg-[#7565e8]" style={{ animationDelay: `${dot * 120}ms` }} />)}</div></div>}
 
-              {(messages.length === 1 || selectedDocument?.startsWith("upload-")) && <div className="pt-2"><p className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">{selectedDocument?.startsWith("upload-") ? "Perguntas para este arquivo" : "Experimente perguntar"}</p><div className="grid gap-2 sm:grid-cols-3">{activeSuggestions.map((suggestion) => <button key={suggestion} onClick={() => void ask(suggestion)} disabled={isThinking} className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 text-left text-sm leading-5 transition hover:-translate-y-0.5 hover:border-[#a8cfc3] hover:bg-[#f2f9f6] disabled:pointer-events-none disabled:opacity-50">{suggestion}</button>)}</div></div>}
+              {(messages.length === 1 || selectedDocument?.startsWith("upload-")) && <div className="pt-2"><p className="mb-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">{selectedDocument?.startsWith("upload-") ? "Perguntas para este arquivo" : "Experimente perguntar"}</p><div className="grid gap-2 sm:grid-cols-3">{activeSuggestions.map((suggestion) => <button key={suggestion} onClick={() => void ask(suggestion)} disabled={isThinking} className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4 text-left text-sm leading-5 transition hover:-translate-y-0.5 hover:border-[#aaa1ff] hover:bg-[#eeecff] hover:shadow-[0_10px_24px_rgba(94,75,220,.1)] disabled:pointer-events-none disabled:opacity-50">{suggestion}</button>)}</div></div>}
             </div>
           </div>
 
           <div className="border-t border-[var(--line)] bg-white px-4 py-4 sm:px-8 sm:py-5">
             <form onSubmit={onSubmit} className="mx-auto max-w-3xl">
-              <div className="rounded-2xl border border-[#cad8d3] bg-white p-2 shadow-[0_14px_45px_rgba(17,36,30,.08)] transition focus-within:border-[#78bba8] focus-within:ring-4 focus-within:ring-[#72dbbd]/10">
+              <div className="rounded-2xl border border-[#cbc7ef] bg-white p-2 shadow-[0_14px_45px_rgba(79,65,170,.1)] transition focus-within:border-[#8f80ff] focus-within:ring-4 focus-within:ring-[#8878ff]/15">
                 <Textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void ask(question) } }} placeholder="Pergunte algo sobre seus documentos…" className="min-h-[64px] resize-none border-0 bg-transparent px-3 py-2 text-[15px] shadow-none focus-visible:ring-0" aria-label="Pergunta para a base de conhecimento" />
-                <div className="flex items-center justify-between px-2 pb-1"><span className="text-[11px] text-[var(--muted)]">Enter para enviar · Shift + Enter para quebrar linha</span><Button type="submit" size="icon" disabled={!question.trim() || isThinking} className="size-9 rounded-xl bg-[#0d1b17] text-[var(--mint)] hover:bg-[#1a3029]" aria-label="Enviar pergunta"><ArrowUp className="size-4" /></Button></div>
+                <div className="flex items-center justify-between px-2 pb-1"><span className="text-[11px] text-[var(--muted)]">Enter para enviar · Shift + Enter para quebrar linha</span><Button type="submit" size="icon" disabled={!question.trim() || isThinking} className="gradient-action size-9 rounded-xl text-white" aria-label="Enviar pergunta"><ArrowUp className="size-4" /></Button></div>
               </div>
               <p className="mt-2 text-center text-[11px] text-[var(--muted)]">O Gemini responde somente com base nos documentos selecionados. Os arquivos não são salvos pelo Bruna Docs; evite conteúdo confidencial nesta demonstração.</p>
             </form>
@@ -213,25 +213,25 @@ export default function Home() {
 
         <aside className={`${showSources ? "block" : "hidden"} border-t border-[var(--line)] bg-[var(--panel)] p-5 xl:block xl:border-l xl:border-t-0`}>
           <div className="flex items-center justify-between"><div><p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">Fontes</p><p className="mt-1 text-sm text-[var(--muted)]">Trechos usados na resposta</p></div><Search className="size-[18px] text-[var(--muted)]" /></div>
-          {latestSources.length ? <div className="mt-5 space-y-3">{latestSources.map((source, index) => <article key={`${source.documentId}-${source.excerpt}`} className="rounded-2xl border border-[var(--line)] bg-white p-4 shadow-[0_8px_25px_rgba(25,44,38,.04)]"><div className="flex items-start justify-between gap-3"><span className="grid size-7 shrink-0 place-items-center rounded-lg bg-[#dff5ed] text-xs font-semibold text-[#246f5d]">{index + 1}</span><span className="rounded-full bg-[#e7f5f0] px-2 py-1 text-[10px] font-medium text-[#246f5d]">Fonte utilizada</span></div><h2 className="mt-3 text-sm font-semibold">{source.title}</h2><p className="mt-1 text-[11px] text-[var(--muted)]">{source.location}</p><blockquote className="mt-3 border-l-2 border-[var(--mint)] pl-3 text-[13px] leading-5 text-[#4a5b55]">“{source.excerpt}”</blockquote></article>)}</div> : <div className="mt-5 rounded-2xl border border-dashed border-[#cbd8d4] p-5 text-center"><div className="mx-auto grid size-10 place-items-center rounded-xl bg-white text-[#477269]"><BookOpenText className="size-[18px]" /></div><p className="mt-3 text-sm font-semibold">As fontes aparecerão aqui</p><p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">Faça uma pergunta para ver os trechos que sustentam a resposta.</p></div>}
-          <button onClick={() => setShowAbout(true)} className="mt-5 flex w-full items-center justify-between rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-left transition hover:border-[#b9d4cc] hover:bg-[#f8fcfa]"><span><span className="block text-xs font-semibold">Como o projeto funciona</span><span className="mt-0.5 block text-[11px] text-[var(--muted)]">Conheça o problema e a solução</span></span><ChevronDown className="size-4 text-[var(--muted)]" /></button>
+          {latestSources.length ? <div className="mt-5 space-y-3">{latestSources.map((source, index) => <article key={`${source.documentId}-${source.excerpt}`} className="rounded-2xl border border-[var(--line)] bg-white p-4 shadow-[0_8px_25px_rgba(75,59,170,.06)]"><div className="flex items-start justify-between gap-3"><span className="grid size-7 shrink-0 place-items-center rounded-lg bg-[#dedaff] text-xs font-semibold text-[#5747c0]">{index + 1}</span><span className="rounded-full bg-[#ece9ff] px-2 py-1 text-[10px] font-medium text-[#5747c0]">Fonte utilizada</span></div><h2 className="mt-3 text-sm font-semibold">{source.title}</h2><p className="mt-1 text-[11px] text-[var(--muted)]">{source.location}</p><blockquote className="mt-3 border-l-2 border-[var(--mint)] pl-3 text-[13px] leading-5 text-[#56536d]">“{source.excerpt}”</blockquote></article>)}</div> : <div className="mt-5 rounded-2xl border border-dashed border-[#c8c3ef] p-5 text-center"><div className="mx-auto grid size-10 place-items-center rounded-xl bg-white text-[#6254c7] shadow-[0_8px_22px_rgba(95,77,210,.12)]"><BookOpenText className="size-[18px]" /></div><p className="mt-3 text-sm font-semibold">As fontes aparecerão aqui</p><p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">Faça uma pergunta para ver os trechos que sustentam a resposta.</p></div>}
+          <button onClick={() => setShowAbout(true)} className="mt-5 flex w-full items-center justify-between rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-left transition hover:border-[#b9b2ff] hover:bg-[#f5f3ff]"><span><span className="block text-xs font-semibold">Como o projeto funciona</span><span className="mt-0.5 block text-[11px] text-[var(--muted)]">Conheça o problema e a solução</span></span><ChevronDown className="size-4 text-[var(--muted)]" /></button>
         </aside>
       </div>
 
       <Dialog open={showAbout} onOpenChange={setShowAbout}>
         <DialogContent className="max-h-[88vh] overflow-y-auto rounded-3xl border-[#d7e4df] p-0 sm:max-w-2xl">
-          <div className="rounded-t-3xl bg-[#0d1b17] px-6 py-6 text-white sm:px-8">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[var(--mint)]"><BriefcaseBusiness className="size-3.5" />Projeto de portfólio</span>
+          <div className="brand-header rounded-t-3xl px-6 py-6 text-white sm:px-8">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white"><BriefcaseBusiness className="size-3.5" />Projeto de portfólio</span>
             <DialogHeader className="mt-4 text-left">
               <DialogTitle className="text-2xl tracking-[-0.03em] text-white">Bruna Docs</DialogTitle>
               <DialogDescription className="max-w-xl text-sm leading-6 text-white/60">Assistente de conhecimento que transforma documentos em respostas diretas, multilíngues e fundamentadas em fontes visíveis.</DialogDescription>
             </DialogHeader>
           </div>
           <div className="grid gap-4 px-6 pb-7 sm:grid-cols-2 sm:px-8">
-            <article className="rounded-2xl border border-[#dfe9e5] bg-[#f7faf9] p-4"><BookOpenText className="size-5 text-[#237e68]" /><h2 className="mt-3 text-sm font-semibold">Problema</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">Encontrar uma informação específica em documentos extensos consome tempo e exige leitura manual.</p></article>
-            <article className="rounded-2xl border border-[#dfe9e5] bg-[#f7faf9] p-4"><Languages className="size-5 text-[#237e68]" /><h2 className="mt-3 text-sm font-semibold">Solução</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">O Gemini interpreta PDF, Word (.docx), TXT e Markdown, responde no idioma da pergunta e mostra os trechos utilizados.</p></article>
-            <article className="rounded-2xl border border-[#dfe9e5] bg-[#f7faf9] p-4"><Code2 className="size-5 text-[#237e68]" /><h2 className="mt-3 text-sm font-semibold">Tecnologias</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">React, TypeScript, Gemini API, processamento server-side e hospedagem em Cloudflare Workers.</p></article>
-            <article className="rounded-2xl border border-[#dfe9e5] bg-[#f7faf9] p-4"><ShieldCheck className="size-5 text-[#237e68]" /><h2 className="mt-3 text-sm font-semibold">Desafios resolvidos</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">Proteção da chave de API, respostas baseadas apenas no documento, fontes rastreáveis e controle da cota gratuita.</p></article>
+            <article className="rounded-2xl border border-[#dedaff] bg-gradient-to-br from-[#f8f7ff] to-[#eef7ff] p-4"><BookOpenText className="size-5 text-[#6755de]" /><h2 className="mt-3 text-sm font-semibold">Problema</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">Encontrar uma informação específica em documentos extensos consome tempo e exige leitura manual.</p></article>
+            <article className="rounded-2xl border border-[#dedaff] bg-gradient-to-br from-[#f8f7ff] to-[#eef7ff] p-4"><Languages className="size-5 text-[#6755de]" /><h2 className="mt-3 text-sm font-semibold">Solução</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">O Gemini interpreta PDF, Word (.docx), TXT e Markdown, responde no idioma da pergunta e mostra os trechos utilizados.</p></article>
+            <article className="rounded-2xl border border-[#dedaff] bg-gradient-to-br from-[#f8f7ff] to-[#eef7ff] p-4"><Code2 className="size-5 text-[#6755de]" /><h2 className="mt-3 text-sm font-semibold">Tecnologias</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">React, TypeScript, Gemini API, processamento server-side e hospedagem em Cloudflare Workers.</p></article>
+            <article className="rounded-2xl border border-[#dedaff] bg-gradient-to-br from-[#f8f7ff] to-[#eef7ff] p-4"><ShieldCheck className="size-5 text-[#6755de]" /><h2 className="mt-3 text-sm font-semibold">Desafios resolvidos</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">Proteção da chave de API, respostas baseadas apenas no documento, fontes rastreáveis e controle da cota gratuita.</p></article>
           </div>
           <div className="mx-6 mb-6 rounded-2xl border border-[#f0dba5] bg-[#fff9e9] p-4 text-sm leading-6 text-[#6e5924] sm:mx-8"><strong className="font-semibold">Nota da demonstração:</strong> o Bruna Docs foi desenvolvido exclusivamente para portfólio. O número de perguntas é limitado pela cota gratuita do Gemini, e os arquivos enviados permanecem somente durante a sessão atual.</div>
         </DialogContent>
