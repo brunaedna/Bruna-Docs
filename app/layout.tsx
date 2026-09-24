@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Lumina — Assistente de conhecimento",
+  title: "Bruna Docs — Assistente de conhecimento",
   description: "Consulte seus documentos com respostas fundamentadas e fontes visíveis.",
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
 };

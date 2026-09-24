@@ -134,7 +134,7 @@ export default function Home() {
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/8 bg-[#09100e]/90 px-4 text-white backdrop-blur-xl sm:px-7">
         <div className="flex items-center gap-3">
           <div className="grid size-9 place-items-center rounded-xl bg-[var(--mint)] text-[#07110d] shadow-[0_0_30px_rgba(115,230,194,.16)]"><Sparkles className="size-[18px]" aria-hidden="true" /></div>
-          <div><p className="text-[15px] font-semibold tracking-[-0.02em]">Lumina</p><p className="text-[11px] text-white/45">knowledge assistant</p></div>
+          <div><p className="text-[15px] font-semibold tracking-[-0.02em]">Bruna Docs</p><p className="text-[11px] text-white/45">assistente de documentos</p></div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <span className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60 sm:inline-flex">Gemini · consulta semântica</span>
@@ -206,7 +206,7 @@ export default function Home() {
                 <Textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void ask(question) } }} placeholder="Pergunte algo sobre seus documentos…" className="min-h-[64px] resize-none border-0 bg-transparent px-3 py-2 text-[15px] shadow-none focus-visible:ring-0" aria-label="Pergunta para a base de conhecimento" />
                 <div className="flex items-center justify-between px-2 pb-1"><span className="text-[11px] text-[var(--muted)]">Enter para enviar · Shift + Enter para quebrar linha</span><Button type="submit" size="icon" disabled={!question.trim() || isThinking} className="size-9 rounded-xl bg-[#0d1b17] text-[var(--mint)] hover:bg-[#1a3029]" aria-label="Enviar pergunta"><ArrowUp className="size-4" /></Button></div>
               </div>
-              <p className="mt-2 text-center text-[11px] text-[var(--muted)]">O Gemini responde somente com base nos documentos selecionados. Os arquivos não são salvos pelo Lumina; evite conteúdo confidencial nesta demonstração.</p>
+              <p className="mt-2 text-center text-[11px] text-[var(--muted)]">O Gemini responde somente com base nos documentos selecionados. Os arquivos não são salvos pelo Bruna Docs; evite conteúdo confidencial nesta demonstração.</p>
             </form>
           </div>
         </section>
@@ -223,7 +223,7 @@ export default function Home() {
           <div className="rounded-t-3xl bg-[#0d1b17] px-6 py-6 text-white sm:px-8">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[var(--mint)]"><BriefcaseBusiness className="size-3.5" />Projeto de portfólio</span>
             <DialogHeader className="mt-4 text-left">
-              <DialogTitle className="text-2xl tracking-[-0.03em] text-white">Lumina Knowledge</DialogTitle>
+              <DialogTitle className="text-2xl tracking-[-0.03em] text-white">Bruna Docs</DialogTitle>
               <DialogDescription className="max-w-xl text-sm leading-6 text-white/60">Assistente de conhecimento que transforma documentos em respostas diretas, multilíngues e fundamentadas em fontes visíveis.</DialogDescription>
             </DialogHeader>
           </div>
@@ -233,7 +233,7 @@ export default function Home() {
             <article className="rounded-2xl border border-[#dfe9e5] bg-[#f7faf9] p-4"><Code2 className="size-5 text-[#237e68]" /><h2 className="mt-3 text-sm font-semibold">Tecnologias</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">React, TypeScript, Gemini API, processamento server-side e hospedagem em Cloudflare Workers.</p></article>
             <article className="rounded-2xl border border-[#dfe9e5] bg-[#f7faf9] p-4"><ShieldCheck className="size-5 text-[#237e68]" /><h2 className="mt-3 text-sm font-semibold">Desafios resolvidos</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">Proteção da chave de API, respostas baseadas apenas no documento, fontes rastreáveis e controle da cota gratuita.</p></article>
           </div>
-          <div className="mx-6 mb-6 rounded-2xl border border-[#f0dba5] bg-[#fff9e9] p-4 text-sm leading-6 text-[#6e5924] sm:mx-8"><strong className="font-semibold">Nota da demonstração:</strong> o Lumina foi desenvolvido exclusivamente para portfólio. O número de perguntas é limitado pela cota gratuita do Gemini, e os arquivos enviados permanecem somente durante a sessão atual.</div>
+          <div className="mx-6 mb-6 rounded-2xl border border-[#f0dba5] bg-[#fff9e9] p-4 text-sm leading-6 text-[#6e5924] sm:mx-8"><strong className="font-semibold">Nota da demonstração:</strong> o Bruna Docs foi desenvolvido exclusivamente para portfólio. O número de perguntas é limitado pela cota gratuita do Gemini, e os arquivos enviados permanecem somente durante a sessão atual.</div>
         </DialogContent>
       </Dialog>
     </main>
