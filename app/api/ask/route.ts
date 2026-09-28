@@ -1,83 +1,43 @@
 import { env } from "cloudflare:workers";
-
-type RequestDocument = {
-  id: string;
-  title: string;
-  type: "PDF" | "DOCX" | "TXT";
-  content?: string;
-  dataBase64?: string;
-  mimeType?: string;
-};
-
-type GeminiResult = {
-  found?: boolean;
-  answer?: string;
-  sources?: Array<{ documentId?: string; excerpt?: string }>;
-};
+import {
+  buildDocumentParts,
+  createRateLimiter,
+  mapTrustedSources,
+  parseGeminiResult,
+  validateQueryInput,
+} from "../../../lib/document-query";
 
 type GeminiApiResponse = {
   candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   error?: { code?: number; message?: string; status?: string };
 };
 
-const WINDOW_MS = 10 * 60 * 1000;
-const MAX_REQUESTS = 12;
 const GEMINI_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash"] as const;
-const requestWindows = new Map<string, number[]>();
+const rateLimiter = createRateLimiter();
 
 function json(body: unknown, status = 200) {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 }
 
-function isRateLimited(request: Request) {
-  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-  const now = Date.now();
-  const recent = (requestWindows.get(ip) ?? []).filter((timestamp) => now - timestamp < WINDOW_MS);
-  if (recent.length >= MAX_REQUESTS) return true;
-  recent.push(now);
-  requestWindows.set(ip, recent);
-  return false;
-}
-
-function extractJson(text: string): GeminiResult {
-  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  return JSON.parse(cleaned) as GeminiResult;
-}
-
 export async function POST(request: Request) {
-  if (isRateLimited(request)) {
+  if (rateLimiter.isLimited(request.headers.get("cf-connecting-ip") ?? "unknown")) {
     return json({ error: "Muitas perguntas em pouco tempo. Aguarde alguns minutos e tente novamente." }, 429);
   }
 
   const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) return json({ error: "A conexão com o Gemini ainda não está configurada." }, 503);
 
-  let body: { question?: unknown; documents?: unknown };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return json({ error: "Não foi possível ler a pergunta." }, 400);
   }
 
-  const question = typeof body.question === "string" ? body.question.trim() : "";
-  const documents = Array.isArray(body.documents) ? body.documents as RequestDocument[] : [];
-  if (question.length < 3 || question.length > 1000) return json({ error: "Escreva uma pergunta entre 3 e 1.000 caracteres." }, 400);
-  if (!documents.length || documents.length > 8) return json({ error: "Selecione entre 1 e 8 documentos para consultar." }, 400);
-
-  const textSize = documents.reduce((total, item) => total + (item.content?.length ?? 0), 0);
-  const binarySize = documents.reduce((total, item) => total + (item.dataBase64?.length ?? 0), 0);
-  if (textSize > 120_000 || binarySize > 9_000_000) return json({ error: "Os documentos selecionados são grandes demais para esta demonstração." }, 413);
-
-  const documentParts: Array<Record<string, unknown>> = [];
-  for (const item of documents) {
-    if (!item?.id || !item?.title) continue;
-    if (item.dataBase64 && item.mimeType === "application/pdf") {
-      documentParts.push({ text: `\n--- DOCUMENTO ${item.id}: ${item.title} ---\n` });
-      documentParts.push({ inlineData: { mimeType: item.mimeType, data: item.dataBase64 } });
-    } else if (item.content) {
-      documentParts.push({ text: `\n--- DOCUMENTO ${item.id}: ${item.title} ---\n${item.content}\n--- FIM DO DOCUMENTO ${item.id} ---\n` });
-    }
-  }
+  const validation = validateQueryInput(body);
+  if (!validation.ok) return json({ error: validation.error }, validation.status);
+  const { question, documents } = validation;
+  const documentParts = buildDocumentParts(documents);
   if (!documentParts.length) return json({ error: "Nenhum conteúdo legível foi encontrado nos documentos." }, 400);
 
   const prompt = [
@@ -139,22 +99,12 @@ export async function POST(request: Request) {
   if (!output) return json({ error: "O Gemini não retornou uma resposta utilizável." }, 502);
 
   try {
-    const result = extractJson(output);
+    const result = parseGeminiResult(output);
     if (!result.found || !result.answer) {
       return json({ answer: "Não encontrei essa informação nos documentos selecionados.", sources: [] });
     }
 
-    const sources = (result.sources ?? []).slice(0, 3).flatMap((source) => {
-      const knowledgeDocument = documents.find((item) => item.id === source.documentId);
-      if (!knowledgeDocument || !source.excerpt) return [];
-      return [{
-        documentId: knowledgeDocument.id,
-        title: knowledgeDocument.title,
-        excerpt: source.excerpt.slice(0, 420),
-        location: `${knowledgeDocument.type} · trecho identificado pelo Gemini`,
-        score: 1,
-      }];
-    });
+    const sources = mapTrustedSources(result, documents);
     return json({ answer: result.answer, sources });
   } catch {
     return json({ error: "O Gemini respondeu em um formato inesperado. Tente reformular a pergunta." }, 502);
