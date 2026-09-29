@@ -6,6 +6,7 @@ import {
   parseGeminiResult,
   validateQueryInput,
 } from "../../../lib/document-query";
+import { isDistributedRateLimited } from "../../../lib/request-rate-limit";
 
 type GeminiApiResponse = {
   candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
@@ -15,12 +16,24 @@ type GeminiApiResponse = {
 const GEMINI_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash"] as const;
 const rateLimiter = createRateLimiter();
 
+async function isRateLimited(request: Request) {
+  const key = request.headers.get("cf-connecting-ip") ?? "unknown";
+  if (env.DB) {
+    try {
+      return await isDistributedRateLimited(env.DB, key);
+    } catch (error) {
+      console.error("D1 rate limit unavailable; using local development fallback", error instanceof Error ? error.message : "unknown");
+    }
+  }
+  return rateLimiter.isLimited(key);
+}
+
 function json(body: unknown, status = 200) {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: Request) {
-  if (rateLimiter.isLimited(request.headers.get("cf-connecting-ip") ?? "unknown")) {
+  if (await isRateLimited(request)) {
     return json({ error: "Muitas perguntas em pouco tempo. Aguarde alguns minutos e tente novamente." }, 429);
   }
 

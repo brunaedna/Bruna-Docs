@@ -35,6 +35,7 @@ Resposta + trechos usados como fonte
 - **Next.js 16**, **React 19** e **TypeScript**
 - **Vinext** e **Vite**
 - **Cloudflare Workers** para execução e publicação
+- **Cloudflare D1** para limitar requisições de forma consistente entre instâncias
 - **Google Gemini API** para interpretação e resposta documental
 - **Mammoth.js** para extração de texto de arquivos `.docx`
 - **Tailwind CSS** para estilização responsiva
@@ -59,6 +60,10 @@ Depois execute:
 ```bash
 npm run dev
 ```
+
+## Rate limit em produção
+
+Associe um banco Cloudflare D1 ao Worker usando o nome de binding `DB` e aplique a migração presente em `drizzle/`. Com o binding disponível, o limite de consultas passa a ser compartilhado entre todas as instâncias do Worker. Sem o D1, a aplicação mantém um fallback em memória apenas para desenvolvimento local.
 
 ## Privacidade e limitações
 
