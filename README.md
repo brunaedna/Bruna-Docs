@@ -41,6 +41,16 @@ Resposta + trechos usados como fonte
 - **Tailwind CSS** para estilização responsiva
 - **Lucide React** e componentes baseados em **shadcn/ui**
 
+## Organização do código
+
+- `app/`: composição das páginas e rotas HTTP.
+- `components/knowledge/`: componentes específicos da experiência documental.
+- `hooks/`: estado e orquestração do workspace no navegador.
+- `lib/knowledge/`: contratos, leitura de arquivos e cliente da API.
+- `lib/gemini-document-client.ts`: integração e fallback dos modelos Gemini.
+
+Essa separação mantém interface, regras de negócio e integrações independentes, facilitando testes e manutenção.
+
 ## Execução local
 
 Requisitos: Node.js `22.13.0` ou superior.
@@ -49,7 +59,7 @@ Requisitos: Node.js `22.13.0` ou superior.
 npm ci
 ```
 
-Crie um arquivo `.env.local` na raiz do projeto:
+Copie `.env.example` para `.env.local` e informe sua chave:
 
 ```env
 GEMINI_API_KEY=sua_chave_do_google_ai_studio
@@ -60,6 +70,19 @@ Depois execute:
 ```bash
 npm run dev
 ```
+
+## Testes
+
+```bash
+npm test
+npm run format:check
+npm run lint
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+O teste de interface adiciona um documento e valida uma resposta com fonte usando uma API simulada, sem consumir a cota do Gemini.
 
 ## Rate limit em produção
 

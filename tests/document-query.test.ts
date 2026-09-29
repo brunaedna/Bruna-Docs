@@ -8,20 +8,43 @@ import {
   validateQueryInput,
 } from "../lib/document-query.ts";
 
-const document = { id: "manual", title: "Manual interno", type: "TXT" as const, content: "O prazo é de cinco dias." };
+const document = {
+  id: "manual",
+  title: "Manual interno",
+  type: "TXT" as const,
+  content: "O prazo é de cinco dias.",
+};
 
 test("aceita uma pergunta e documentos dentro dos limites", () => {
-  assert.deepEqual(validateQueryInput({ question: "  Qual é o prazo?  ", documents: [document] }), {
-    ok: true,
-    question: "Qual é o prazo?",
-    documents: [document],
-  });
+  assert.deepEqual(
+    validateQueryInput({
+      question: "  Qual é o prazo?  ",
+      documents: [document],
+    }),
+    {
+      ok: true,
+      question: "Qual é o prazo?",
+      documents: [document],
+    },
+  );
 });
 
 test("rejeita perguntas e quantidades de documentos inválidas", () => {
-  assert.equal(validateQueryInput({ question: "a", documents: [document] }).ok, false);
-  assert.equal(validateQueryInput({ question: "Pergunta válida", documents: [] }).ok, false);
-  assert.equal(validateQueryInput({ question: "Pergunta válida", documents: Array(9).fill(document) }).ok, false);
+  assert.equal(
+    validateQueryInput({ question: "a", documents: [document] }).ok,
+    false,
+  );
+  assert.equal(
+    validateQueryInput({ question: "Pergunta válida", documents: [] }).ok,
+    false,
+  );
+  assert.equal(
+    validateQueryInput({
+      question: "Pergunta válida",
+      documents: Array(9).fill(document),
+    }).ok,
+    false,
+  );
 });
 
 test("rejeita conteúdo acima do limite da demonstração", () => {
@@ -32,35 +55,50 @@ test("rejeita conteúdo acima do limite da demonstração", () => {
   assert.deepEqual(result, {
     ok: false,
     status: 413,
-    error: "Os documentos selecionados são grandes demais para esta demonstração.",
+    error:
+      "Os documentos selecionados são grandes demais para esta demonstração.",
   });
 });
 
 test("monta partes de texto e PDF sem misturar formatos", () => {
   const parts = buildDocumentParts([
     document,
-    { id: "pdf", title: "Contrato", type: "PDF", dataBase64: "YWJj", mimeType: "application/pdf" },
+    {
+      id: "pdf",
+      title: "Contrato",
+      type: "PDF",
+      dataBase64: "YWJj",
+      mimeType: "application/pdf",
+    },
   ]);
   assert.equal(parts.length, 3);
   assert.match(String(parts[0].text), /O prazo é de cinco dias/);
-  assert.deepEqual(parts[2], { inlineData: { mimeType: "application/pdf", data: "YWJj" } });
+  assert.deepEqual(parts[2], {
+    inlineData: { mimeType: "application/pdf", data: "YWJj" },
+  });
 });
 
 test("interpreta JSON puro ou cercado por bloco Markdown", () => {
   const expected = { found: true, answer: "Cinco dias", sources: [] };
   assert.deepEqual(parseGeminiResult(JSON.stringify(expected)), expected);
-  assert.deepEqual(parseGeminiResult(`\`\`\`json\n${JSON.stringify(expected)}\n\`\`\``), expected);
+  assert.deepEqual(
+    parseGeminiResult(`\`\`\`json\n${JSON.stringify(expected)}\n\`\`\``),
+    expected,
+  );
 });
 
 test("mantém somente fontes pertencentes aos documentos enviados", () => {
-  const sources = mapTrustedSources({
-    found: true,
-    answer: "Cinco dias",
-    sources: [
-      { documentId: "manual", excerpt: " O prazo é de cinco dias. " },
-      { documentId: "inventado", excerpt: "Fonte que não existe" },
-    ],
-  }, [document]);
+  const sources = mapTrustedSources(
+    {
+      found: true,
+      answer: "Cinco dias",
+      sources: [
+        { documentId: "manual", excerpt: " O prazo é de cinco dias. " },
+        { documentId: "inventado", excerpt: "Fonte que não existe" },
+      ],
+    },
+    [document],
+  );
   assert.equal(sources.length, 1);
   assert.equal(sources[0].documentId, "manual");
   assert.equal(sources[0].excerpt, "O prazo é de cinco dias.");
