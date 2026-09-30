@@ -8,6 +8,9 @@ O **Bruna Docs** é um assistente de consulta documental com inteligência artif
 
 - Upload de arquivos PDF, Word (`.docx`), TXT e Markdown.
 - Consulta de um documento específico ou de toda a biblioteca.
+- Fragmentação dos documentos com texto extraído em trechos com sobreposição controlada.
+- Recuperação semântica por embeddings antes da geração da resposta.
+- Busca lexical como contingência quando o serviço de embeddings está indisponível.
 - Respostas no mesmo idioma da pergunta.
 - Identificação e exibição das fontes utilizadas.
 - Extração de texto de documentos Word diretamente no navegador.
@@ -21,14 +24,26 @@ O **Bruna Docs** é um assistente de consulta documental com inteligência artif
 ```text
 Documento selecionado
         ↓
-Pergunta do usuário
+Divisão em trechos
         ↓
-Processamento seguro no servidor
+Embeddings do documento e da pergunta
         ↓
-Análise com Google Gemini
+Ranking por similaridade e seleção do contexto
+        ↓
+Geração fundamentada com Google Gemini
         ↓
 Resposta + trechos usados como fonte
 ```
+
+Os embeddings são processados durante cada consulta e não são armazenados. Essa
+decisão preserva o comportamento privado da demonstração, em que os documentos
+permanecem somente na sessão atual. A arquitetura deixa o mecanismo de recuperação
+isolado atrás de interfaces, permitindo substituir essa estratégia por um índice
+persistente no futuro sem alterar a rota ou a interface.
+
+Arquivos PDF enviados sem texto previamente extraído continuam sendo analisados
+diretamente pelo recurso multimodal do Gemini. TXT, Markdown, Word e os documentos
+de demonstração passam pelo pipeline completo de recuperação por trechos.
 
 ## Tecnologias utilizadas
 
@@ -37,6 +52,7 @@ Resposta + trechos usados como fonte
 - **Cloudflare Workers** para execução e publicação
 - **Cloudflare D1** para limitar requisições de forma consistente entre instâncias
 - **Google Gemini API** para interpretação e resposta documental
+- **Gemini Embeddings** para representação vetorial e recuperação semântica
 - **Mammoth.js** para extração de texto de arquivos `.docx`
 - **Tailwind CSS** para estilização responsiva
 - **Lucide React** e componentes baseados em **shadcn/ui**
@@ -48,6 +64,8 @@ Resposta + trechos usados como fonte
 - `hooks/`: estado e orquestração do workspace no navegador.
 - `lib/knowledge/`: contratos, leitura de arquivos e cliente da API.
 - `lib/gemini-document-client.ts`: integração e fallback dos modelos Gemini.
+- `lib/gemini-embedding-client.ts`: integração isolada com a API de embeddings.
+- `lib/rag/`: fragmentação, similaridade e recuperação híbrida do contexto.
 
 Essa separação mantém interface, regras de negócio e integrações independentes, facilitando testes e manutenção.
 
@@ -82,7 +100,10 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-O teste de interface adiciona um documento e valida uma resposta com fonte usando uma API simulada, sem consumir a cota do Gemini.
+Os testes unitários validam fragmentação, similaridade, recuperação vetorial,
+fallback lexical, fontes e contratos com o Gemini. O teste de interface adiciona
+um documento e valida uma resposta com fonte usando uma API simulada, sem consumir
+a cota do Gemini.
 
 ## Rate limit em produção
 

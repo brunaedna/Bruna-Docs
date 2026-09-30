@@ -29,19 +29,19 @@ const PROJECT_HIGHLIGHTS = [
     title: "Solução",
     icon: Languages,
     description:
-      "O Gemini interpreta PDF, Word (.docx), TXT e Markdown, responde no idioma da pergunta e mostra os trechos utilizados.",
+      "Quando há texto extraído, o Bruna Docs fragmenta e recupera o contexto relevante antes de o Gemini responder e mostrar as fontes.",
   },
   {
     title: "Tecnologias",
     icon: Code2,
     description:
-      "React, TypeScript, Gemini API, processamento server-side e hospedagem em Cloudflare Workers.",
+      "React, TypeScript, embeddings do Gemini, recuperação vetorial, busca lexical de contingência e Cloudflare Workers.",
   },
   {
     title: "Desafios resolvidos",
     icon: ShieldCheck,
     description:
-      "Proteção da chave de API, respostas baseadas apenas no documento, fontes rastreáveis e controle da cota gratuita.",
+      "Proteção da chave, contexto limitado aos trechos recuperados, fontes rastreáveis, fallback resiliente e controle da cota.",
   },
 ];
 

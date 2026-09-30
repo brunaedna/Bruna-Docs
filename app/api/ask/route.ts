@@ -1,15 +1,19 @@
 import { env } from "cloudflare:workers";
 import {
-  buildDocumentParts,
+  buildRetrievedParts,
   createRateLimiter,
   mapTrustedSources,
   parseGeminiResult,
   validateQueryInput,
 } from "../../../lib/document-query";
+import { GeminiEmbeddingClient } from "../../../lib/gemini-embedding-client";
 import { isDistributedRateLimited } from "../../../lib/request-rate-limit";
 import { queryGeminiDocuments } from "../../../lib/gemini-document-client";
+import { FixedSizeDocumentChunker } from "../../../lib/rag/document-chunker";
+import { HybridRetriever } from "../../../lib/rag/retriever";
 
 const rateLimiter = createRateLimiter();
+const documentChunker = new FixedSizeDocumentChunker();
 
 async function isRateLimited(request: Request) {
   const key = request.headers.get("cf-connecting-ip") ?? "unknown";
@@ -62,7 +66,10 @@ export async function POST(request: Request) {
   if (!validation.ok)
     return json({ error: validation.error }, validation.status);
   const { question, documents } = validation;
-  const documentParts = buildDocumentParts(documents);
+  const chunks = documentChunker.chunk(documents);
+  const retriever = new HybridRetriever(new GeminiEmbeddingClient(apiKey));
+  const retrieval = await retriever.retrieve(question, chunks);
+  const documentParts = buildRetrievedParts(retrieval.chunks, documents);
   if (!documentParts.length)
     return json(
       { error: "Nenhum conteúdo legível foi encontrado nos documentos." },
@@ -81,8 +88,16 @@ export async function POST(request: Request) {
       });
     }
 
-    const sources = mapTrustedSources(result, documents);
-    return json({ answer: result.answer, sources });
+    const sources = mapTrustedSources(result, documents, retrieval.chunks);
+    return json({
+      answer: result.answer,
+      sources,
+      retrieval: {
+        strategy: retrieval.strategy,
+        chunksConsidered: chunks.length,
+        chunksSelected: retrieval.chunks.length,
+      },
+    });
   } catch {
     return json(
       {

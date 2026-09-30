@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildDocumentParts,
+  buildRetrievedParts,
   createRateLimiter,
   mapTrustedSources,
   parseGeminiResult,
@@ -78,6 +79,27 @@ test("monta partes de texto e PDF sem misturar formatos", () => {
   });
 });
 
+test("monta o contexto somente com os trechos recuperados", () => {
+  const parts = buildRetrievedParts(
+    [
+      {
+        id: "manual-chunk-2",
+        documentId: "manual",
+        title: "Manual interno",
+        text: "O prazo é de cinco dias.",
+        location: "Trecho 2",
+        index: 1,
+        score: 0.91,
+      },
+    ],
+    [document],
+  );
+
+  assert.equal(parts.length, 1);
+  assert.match(String(parts[0].text), /manual-chunk-2/);
+  assert.match(String(parts[0].text), /O prazo é de cinco dias/);
+});
+
 test("interpreta JSON puro ou cercado por bloco Markdown", () => {
   const expected = { found: true, answer: "Cinco dias", sources: [] };
   assert.deepEqual(parseGeminiResult(JSON.stringify(expected)), expected);
@@ -102,6 +124,43 @@ test("mantém somente fontes pertencentes aos documentos enviados", () => {
   assert.equal(sources.length, 1);
   assert.equal(sources[0].documentId, "manual");
   assert.equal(sources[0].excerpt, "O prazo é de cinco dias.");
+});
+
+test("vincula uma fonte ao trecho recuperado e preserva sua pontuação", () => {
+  const chunks = [
+    {
+      id: "manual-chunk-1",
+      documentId: "manual",
+      title: "Manual interno",
+      text: "O prazo é de cinco dias.",
+      location: "Trecho 1",
+      index: 0,
+      score: 0.87654,
+    },
+  ];
+  const sources = mapTrustedSources(
+    {
+      found: true,
+      answer: "Cinco dias",
+      sources: [
+        {
+          chunkId: "manual-chunk-1",
+          documentId: "manual",
+          excerpt: "O prazo é de cinco dias.",
+        },
+      ],
+    },
+    [document],
+    chunks,
+  );
+
+  assert.deepEqual(sources[0], {
+    documentId: "manual",
+    title: "Manual interno",
+    excerpt: "O prazo é de cinco dias.",
+    location: "Trecho 1",
+    score: 0.8765,
+  });
 });
 
 test("limita requisições por chave e libera após a janela", () => {

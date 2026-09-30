@@ -7,7 +7,7 @@ import {
 
 test("monta uma instrução documental sem misturar a pergunta às regras", () => {
   const prompt = createDocumentPrompt("Qual é o prazo?");
-  assert.match(prompt, /somente os documentos fornecidos/);
+  assert.match(prompt, /somente os trechos ou PDFs fornecidos/);
   assert.match(prompt, /PERGUNTA: Qual é o prazo\?/);
   assert.match(prompt, /documentId/);
 });

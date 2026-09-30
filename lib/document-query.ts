@@ -1,3 +1,5 @@
+import type { RetrievedChunk } from "./rag/types";
+
 export type RequestDocument = {
   id: string;
   title: string;
@@ -10,7 +12,11 @@ export type RequestDocument = {
 export type GeminiResult = {
   found?: boolean;
   answer?: string;
-  sources?: Array<{ documentId?: string; excerpt?: string }>;
+  sources?: Array<{
+    chunkId?: string;
+    documentId?: string;
+    excerpt?: string;
+  }>;
 };
 
 type ValidationResult =
@@ -80,6 +86,41 @@ export function buildDocumentParts(documents: RequestDocument[]) {
   return parts;
 }
 
+export function buildRetrievedParts(
+  chunks: RetrievedChunk[],
+  documents: RequestDocument[],
+) {
+  const parts: Array<Record<string, unknown>> = chunks.map((chunk) => ({
+    text: [
+      `\n--- TRECHO ${chunk.id} ---`,
+      `DOCUMENTO ${chunk.documentId}: ${chunk.title}`,
+      `LOCALIZAÇÃO: ${chunk.location}`,
+      chunk.text,
+      `--- FIM DO TRECHO ${chunk.id} ---\n`,
+    ].join("\n"),
+  }));
+
+  const contentlessPdfs = documents.filter(
+    (document) =>
+      !document.content?.trim() &&
+      document.dataBase64 &&
+      document.mimeType === "application/pdf",
+  );
+  for (const document of contentlessPdfs) {
+    parts.push({
+      text: `\n--- DOCUMENTO PDF ${document.id}: ${document.title} ---\n`,
+    });
+    parts.push({
+      inlineData: {
+        mimeType: document.mimeType,
+        data: document.dataBase64,
+      },
+    });
+  }
+
+  return parts;
+}
+
 export function parseGeminiResult(text: string): GeminiResult {
   const cleaned = text
     .trim()
@@ -91,17 +132,30 @@ export function parseGeminiResult(text: string): GeminiResult {
 export function mapTrustedSources(
   result: GeminiResult,
   documents: RequestDocument[],
+  chunks: RetrievedChunk[] = [],
 ) {
-  return (result.sources ?? []).slice(0, 3).flatMap((source) => {
+  const seen = new Set<string>();
+  return (result.sources ?? []).slice(0, 5).flatMap((source) => {
+    const chunk = chunks.find((item) => item.id === source.chunkId);
     const document = documents.find((item) => item.id === source.documentId);
-    if (!document || !source.excerpt?.trim()) return [];
+    const trustedDocument = chunk
+      ? documents.find((item) => item.id === chunk.documentId)
+      : document;
+    if (!trustedDocument || !source.excerpt?.trim()) return [];
+
+    const sourceKey = chunk?.id ?? trustedDocument.id;
+    if (seen.has(sourceKey)) return [];
+    seen.add(sourceKey);
+
     return [
       {
-        documentId: document.id,
-        title: document.title,
+        documentId: trustedDocument.id,
+        title: trustedDocument.title,
         excerpt: source.excerpt.trim().slice(0, 420),
-        location: `${document.type} · trecho identificado pelo Gemini`,
-        score: 1,
+        location:
+          chunk?.location ??
+          `${trustedDocument.type} · trecho identificado pelo Gemini`,
+        score: chunk ? Number(chunk.score.toFixed(4)) : 1,
       },
     ];
   });

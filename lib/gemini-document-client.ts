@@ -15,12 +15,13 @@ const RETRYABLE_STATUS = new Set([404, 429, 500, 502, 503, 504]);
 
 export function createDocumentPrompt(question: string) {
   return [
-    "Responda à pergunta usando somente os documentos fornecidos.",
+    "Responda à pergunta usando somente os trechos ou PDFs fornecidos.",
     "Responda no mesmo idioma da pergunta, mesmo que o documento esteja em outro idioma.",
-    "Não use conhecimento externo. Se a resposta não estiver nos documentos, defina found como false.",
-    "Para cada fonte, copie um trecho curto e fiel do documento e informe exatamente seu documentId.",
+    "Não use conhecimento externo. Se a resposta não estiver no contexto recuperado, defina found como false.",
+    "Para cada fonte textual, copie um trecho curto e fiel e informe exatamente seu chunkId e documentId.",
+    "Para PDFs sem chunkId, informe o documentId e deixe chunkId de fora.",
     "Retorne somente JSON válido neste formato:",
-    '{"found":true,"answer":"resposta direta","sources":[{"documentId":"id","excerpt":"trecho fiel"}]}',
+    '{"found":true,"answer":"resposta direta","sources":[{"chunkId":"id-do-trecho","documentId":"id-do-documento","excerpt":"trecho fiel"}]}',
     `PERGUNTA: ${question}`,
   ].join("\n");
 }
