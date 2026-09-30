@@ -9,6 +9,7 @@ import {
   WELCOME_MESSAGE,
 } from "@/lib/knowledge/constants";
 import { readKnowledgeDocument } from "@/lib/knowledge/file-reader";
+import { createPacedTextPresenter } from "@/lib/knowledge/paced-text-presenter";
 import type { Message, ModelContextDocument } from "@/lib/knowledge/types";
 
 function assistantMessage(content: string): Message {
@@ -53,20 +54,30 @@ export function useKnowledgeWorkspace() {
       setQuestion("");
       setIsThinking(true);
 
+      const textPresenter = createPacedTextPresenter(
+        (text) => {
+          setMessages((current) =>
+            current.map((message) =>
+              message.id === assistantId
+                ? { ...message, content: message.content + text }
+                : message,
+            ),
+          );
+        },
+        {
+          reducedMotion:
+            window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ??
+            false,
+        },
+      );
+
       try {
         const result = await askKnowledgeBase(
           cleanQuestion,
           activeDocuments,
-          (text) => {
-            setMessages((current) =>
-              current.map((message) =>
-                message.id === assistantId
-                  ? { ...message, content: message.content + text }
-                  : message,
-              ),
-            );
-          },
+          textPresenter.push,
         );
+        await textPresenter.finish();
         setMessages((current) =>
           current.map((message) =>
             message.id === assistantId
@@ -80,6 +91,7 @@ export function useKnowledgeWorkspace() {
         );
         return result;
       } catch (error) {
+        textPresenter.cancel();
         const content =
           error instanceof Error
             ? error.message

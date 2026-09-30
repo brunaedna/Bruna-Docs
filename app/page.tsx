@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AboutDialog } from "@/components/knowledge/about-dialog";
 import { LibrarySidebar } from "@/components/knowledge/library-sidebar";
 import { SourcesSidebar } from "@/components/knowledge/sources-sidebar";
+import { FormattedMessage } from "@/components/knowledge/formatted-message";
 import { useKnowledgeWorkspace } from "@/hooks/use-knowledge-workspace";
 
 export default function Home() {
@@ -141,11 +142,16 @@ export default function Home() {
                   <div
                     className={`max-w-[82%] ${message.role === "user" ? "rounded-[20px_20px_6px_20px] bg-gradient-to-br from-[#7658f4] to-[#3476f7] px-4 py-3 text-white shadow-[0_10px_28px_rgba(91,72,220,.22)]" : "pt-1"}`}
                   >
-                    <p
-                      className={`text-[15px] leading-7 ${message.role === "assistant" ? "text-[#302f48]" : "text-white/95"}`}
-                    >
-                      {message.content}
-                    </p>
+                    {message.role === "assistant" ? (
+                      <FormattedMessage
+                        content={message.content}
+                        className="text-[15px] leading-7 text-[#302f48]"
+                      />
+                    ) : (
+                      <p className="text-[15px] leading-7 text-white/95">
+                        {message.content}
+                      </p>
+                    )}
                     {!!message.sources?.length && (
                       <div className="mt-4 flex flex-wrap gap-2">
                         {message.sources.map((source, index) => (
