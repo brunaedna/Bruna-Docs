@@ -43,31 +43,54 @@ export function useKnowledgeWorkspace() {
       const cleanQuestion = rawQuestion.trim();
       if (!cleanQuestion || isThinking) return null;
 
+      const requestId = Date.now();
+      const assistantId = `assistant-${requestId}`;
       setMessages((current) => [
         ...current,
-        { id: `user-${Date.now()}`, role: "user", content: cleanQuestion },
+        { id: `user-${requestId}`, role: "user", content: cleanQuestion },
+        { id: assistantId, role: "assistant", content: "" },
       ]);
       setQuestion("");
       setIsThinking(true);
 
       try {
-        const result = await askKnowledgeBase(cleanQuestion, activeDocuments);
-        setMessages((current) => [
-          ...current,
-          {
-            id: `assistant-${Date.now()}`,
-            role: "assistant",
-            content: result.answer,
-            sources: result.sources,
+        const result = await askKnowledgeBase(
+          cleanQuestion,
+          activeDocuments,
+          (text) => {
+            setMessages((current) =>
+              current.map((message) =>
+                message.id === assistantId
+                  ? { ...message, content: message.content + text }
+                  : message,
+              ),
+            );
           },
-        ]);
+        );
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === assistantId
+              ? {
+                  ...message,
+                  content: result.answer,
+                  sources: result.sources,
+                }
+              : message,
+          ),
+        );
         return result;
       } catch (error) {
         const content =
           error instanceof Error
             ? error.message
             : "Não foi possível consultar o Gemini agora.";
-        setMessages((current) => [...current, assistantMessage(content)]);
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === assistantId
+              ? { ...message, content, sources: [] }
+              : message,
+          ),
+        );
         return { answer: content, sources: [] };
       } finally {
         setIsThinking(false);

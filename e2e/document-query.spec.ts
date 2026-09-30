@@ -6,21 +6,31 @@ test("adiciona um documento e responde com a fonte utilizada", async ({
   await page.route("**/api/ask", async (route) => {
     const request = route.request().postDataJSON();
     const document = request.documents[0];
-    await route.fulfill({
-      json: {
-        answer: "O atendimento funciona de segunda a sexta, das 9h às 18h.",
-        sources: [
-          {
-            documentId: document.id,
-            title: document.title,
-            excerpt: "Atendimento: segunda a sexta, das 9h às 18h.",
-            context:
-              "Nossa central possui atendimento humano. Atendimento: segunda a sexta, das 9h às 18h. Aos feriados, não há expediente.",
-            location: "Documento enviado",
-            score: 1,
-          },
-        ],
+    const sources = [
+      {
+        documentId: document.id,
+        title: document.title,
+        excerpt: "Atendimento: segunda a sexta, das 9h às 18h.",
+        context:
+          "Nossa central possui atendimento humano. Atendimento: segunda a sexta, das 9h às 18h. Aos feriados, não há expediente.",
+        location: "Documento enviado",
+        score: 1,
       },
+    ];
+    await route.fulfill({
+      contentType: "application/x-ndjson",
+      body: [
+        JSON.stringify({ type: "delta", text: "O atendimento funciona " }),
+        JSON.stringify({
+          type: "delta",
+          text: "de segunda a sexta, das 9h às 18h.",
+        }),
+        JSON.stringify({
+          type: "complete",
+          answer: "O atendimento funciona de segunda a sexta, das 9h às 18h.",
+          sources,
+        }),
+      ].join("\n"),
     });
   });
 

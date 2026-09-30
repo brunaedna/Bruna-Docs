@@ -3,13 +3,16 @@ import {
   buildRetrievedParts,
   createRateLimiter,
   mapTrustedSources,
-  parseGeminiResult,
   validateQueryInput,
 } from "../../../lib/document-query";
 import { GeminiEmbeddingClient } from "../../../lib/gemini-embedding-client";
 import { isDistributedRateLimited } from "../../../lib/request-rate-limit";
-import { queryGeminiDocuments } from "../../../lib/gemini-document-client";
+import {
+  readGeminiTextStream,
+  streamGeminiDocuments,
+} from "../../../lib/gemini-document-client";
 import { FixedSizeDocumentChunker } from "../../../lib/rag/document-chunker";
+import { findExtractiveAnswer } from "../../../lib/rag/extractive-answer";
 import { HybridRetriever } from "../../../lib/rag/retriever";
 
 const rateLimiter = createRateLimiter();
@@ -37,6 +40,50 @@ function json(body: unknown, status = 200) {
   });
 }
 
+function streamResponse(
+  answer: string,
+  sources: unknown[],
+  retrieval: Record<string, unknown>,
+) {
+  return eventStream(async (send) => {
+    send({ type: "delta", text: answer });
+    send({ type: "complete", answer, sources, retrieval });
+  });
+}
+
+function eventStream(
+  producer: (send: (event: Record<string, unknown>) => void) => Promise<void>,
+) {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream({
+    async start(controller) {
+      const send = (event: Record<string, unknown>) =>
+        controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+      try {
+        await producer(send);
+      } catch (error) {
+        send({
+          type: "error",
+          error:
+            error instanceof Error
+              ? error.message
+              : "A resposta foi interrompida inesperadamente.",
+        });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(body, {
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "no-store, no-transform",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+}
+
 export async function POST(request: Request) {
   if (await isRateLimited(request)) {
     return json(
@@ -47,13 +94,6 @@ export async function POST(request: Request) {
       429,
     );
   }
-
-  const apiKey = env.GEMINI_API_KEY;
-  if (!apiKey)
-    return json(
-      { error: "A conexão com o Gemini ainda não está configurada." },
-      503,
-    );
 
   let body: unknown;
   try {
@@ -67,8 +107,38 @@ export async function POST(request: Request) {
     return json({ error: validation.error }, validation.status);
   const { question, documents } = validation;
   const chunks = documentChunker.chunk(documents);
+  const apiKey = env.GEMINI_API_KEY ?? "";
   const retriever = new HybridRetriever(new GeminiEmbeddingClient(apiKey));
   const retrieval = await retriever.retrieve(question, chunks);
+  const extractiveAnswer =
+    retrieval.strategy === "lexical-fast"
+      ? findExtractiveAnswer(question, retrieval.chunks)
+      : null;
+
+  if (extractiveAnswer) {
+    const sources = mapTrustedSources(
+      {
+        found: true,
+        answer: extractiveAnswer.answer,
+        sources: [extractiveAnswer],
+      },
+      documents,
+      retrieval.chunks,
+    );
+    return streamResponse(extractiveAnswer.answer, sources, {
+      strategy: retrieval.strategy,
+      answerMode: "extractive",
+      chunksConsidered: chunks.length,
+      chunksSelected: retrieval.chunks.length,
+    });
+  }
+
+  if (!apiKey)
+    return json(
+      { error: "A conexão com o Gemini ainda não está configurada." },
+      503,
+    );
+
   const documentParts = buildRetrievedParts(retrieval.chunks, documents);
   if (!documentParts.length)
     return json(
@@ -76,35 +146,67 @@ export async function POST(request: Request) {
       400,
     );
 
-  const gemini = await queryGeminiDocuments(apiKey, question, documentParts);
+  const gemini = await streamGeminiDocuments(apiKey, question, documentParts);
   if (!gemini.ok) return json({ error: gemini.error }, gemini.status);
 
-  try {
-    const result = parseGeminiResult(gemini.output);
-    if (!result.found || !result.answer) {
-      return json({
-        answer: "Não encontrei essa informação nos documentos selecionados.",
-        sources: [],
-      });
+  const sources = sourcesFromRetrieval(question, retrieval.chunks, documents);
+  return eventStream(async (send) => {
+    let answer = "";
+    for await (const text of readGeminiTextStream(gemini.body)) {
+      answer += text;
+      send({ type: "delta", text });
     }
-
-    const sources = mapTrustedSources(result, documents, retrieval.chunks);
-    return json({
-      answer: result.answer,
+    if (!answer.trim())
+      throw new Error("O Gemini não retornou uma resposta utilizável.");
+    send({
+      type: "complete",
+      answer: answer.trim(),
       sources,
       retrieval: {
         strategy: retrieval.strategy,
+        answerMode: "generative-stream",
         chunksConsidered: chunks.length,
         chunksSelected: retrieval.chunks.length,
       },
     });
-  } catch {
-    return json(
-      {
-        error:
-          "O Gemini respondeu em um formato inesperado. Tente reformular a pergunta.",
-      },
-      502,
-    );
-  }
+  });
+}
+
+function sourcesFromRetrieval(
+  question: string,
+  chunks: Awaited<ReturnType<HybridRetriever["retrieve"]>>["chunks"],
+  documents: Array<{
+    id: string;
+    title: string;
+    type: "PDF" | "DOCX" | "TXT";
+    content?: string;
+  }>,
+) {
+  const result = {
+    found: true,
+    answer: "",
+    sources: chunks.slice(0, 3).map((chunk) => {
+      const match = findExtractiveAnswer(question, [chunk], {
+        minimumScore: 0,
+      });
+      return {
+        chunkId: chunk.id,
+        documentId: chunk.documentId,
+        excerpt: match?.excerpt ?? chunk.text.slice(0, 420),
+      };
+    }),
+  };
+  const mapped = mapTrustedSources(result, documents, chunks);
+  if (mapped.length) return mapped;
+
+  return documents
+    .filter((document) => document.type === "PDF" && !document.content?.trim())
+    .slice(0, 3)
+    .map((document) => ({
+      documentId: document.id,
+      title: document.title,
+      excerpt: "Conteúdo analisado diretamente no documento PDF.",
+      location: "Documento PDF",
+      score: 1,
+    }));
 }

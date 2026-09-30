@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createDocumentPrompt,
+  readGeminiTextStream,
   queryGeminiDocuments,
+  streamGeminiDocuments,
 } from "../lib/gemini-document-client.ts";
 
 test("monta uma instrução documental sem misturar a pergunta às regras", () => {
@@ -59,4 +61,31 @@ test("transforma resposta de cota em erro apropriado para a rota", async () => {
     assert.equal(result.status, 429);
     assert.match(result.error, /cota gratuita/i);
   }
+});
+
+test("transmite os fragmentos de texto recebidos do Gemini", async () => {
+  const events = [
+    { candidates: [{ content: { parts: [{ text: "O onboarding " }] } }] },
+    { candidates: [{ content: { parts: [{ text: "dura duas semanas." }] } }] },
+  ];
+  const fetcher = (async () =>
+    new Response(
+      events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(""),
+      { headers: { "Content-Type": "text/event-stream" } },
+    )) as typeof fetch;
+
+  const result = await streamGeminiDocuments(
+    "test-key",
+    "Quanto tempo dura?",
+    [{ text: "Documento" }],
+    fetcher,
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  const fragments: string[] = [];
+  for await (const text of readGeminiTextStream(result.body)) {
+    fragments.push(text);
+  }
+  assert.deepEqual(fragments, ["O onboarding ", "dura duas semanas."]);
 });

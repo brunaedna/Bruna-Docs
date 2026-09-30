@@ -13,6 +13,7 @@ O **Bruna Docs** é um assistente de consulta documental com inteligência artif
 - Atalho lexical para perguntas diretas, evitando chamadas de embeddings desnecessárias.
 - Busca lexical como contingência quando o serviço de embeddings está indisponível.
 - Respostas no mesmo idioma da pergunta.
+- Streaming real das respostas geradas, com atualização progressiva da conversa.
 - Identificação das fontes, contexto original e destaque visual do trecho utilizado.
 - Extração de texto de documentos Word diretamente no navegador.
 - Processamento de PDFs pelo Gemini.
@@ -28,7 +29,7 @@ Documento selecionado
 Divisão em trechos
         ↓
 Correspondência textual direta?
-        ├─ sim → seleção imediata do contexto
+        ├─ sim → resposta extrativa imediata + contexto
         └─ não → embeddings do documento e da pergunta
         ↓
 Ranking por similaridade e seleção do contexto
@@ -38,9 +39,10 @@ Geração fundamentada com Google Gemini
 Resposta + trechos usados como fonte
 ```
 
-Quando a pergunta possui correspondência textual forte, o contexto é selecionado
-sem uma chamada adicional à API de embeddings. Nos demais casos, os embeddings são
-processados durante a consulta e não são armazenados. Essa decisão preserva o
+Quando uma pergunta factual possui correspondência textual forte, a frase é
+respondida diretamente com sua fonte, sem chamadas aos modelos de embeddings ou
+geração. Nos demais casos, os embeddings são processados durante a consulta e não
+são armazenados. Essa decisão preserva o
 comportamento privado da demonstração, em que os documentos permanecem somente na
 sessão atual. A arquitetura deixa o mecanismo de recuperação isolado atrás de
 interfaces, permitindo substituir essa estratégia por um índice persistente no

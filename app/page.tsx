@@ -168,7 +168,7 @@ export default function Home() {
                 </article>
               ))}
 
-              {isThinking && (
+              {isThinking && !messages.at(-1)?.content && (
                 <div className="flex items-center gap-3" aria-live="polite">
                   <div className="gradient-action grid size-8 place-items-center rounded-xl text-white">
                     <Sparkles className="size-4 animate-pulse" />
