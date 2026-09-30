@@ -79,12 +79,48 @@ test("recupera os trechos semanticamente mais próximos", async () => {
       return [1, 0];
     },
   };
-  const retriever = new HybridRetriever(provider, { limit: 1 });
+  const retriever = new HybridRetriever(provider, {
+    limit: 1,
+    lexicalFastPathScore: 1.1,
+  });
 
   const result = await retriever.retrieve("Qual é o reembolso?", chunks);
 
   assert.equal(result.strategy, "vector");
   assert.equal(result.chunks[0].id, "b");
+});
+
+test("evita chamada de embeddings quando a correspondência textual é forte", async () => {
+  let providerCalls = 0;
+  const provider: EmbeddingProvider = {
+    async embedDocuments() {
+      providerCalls += 1;
+      return [[1, 0]];
+    },
+    async embedQuery() {
+      providerCalls += 1;
+      return [1, 0];
+    },
+  };
+  const chunks: RagChunk[] = [
+    {
+      id: "onboarding",
+      documentId: "manual",
+      title: "Manual",
+      text: "O onboarding dura duas semanas.",
+      location: "Trecho 1",
+      index: 0,
+    },
+  ];
+
+  const result = await new HybridRetriever(provider).retrieve(
+    "Quanto tempo dura o onboarding?",
+    chunks,
+  );
+
+  assert.equal(result.strategy, "lexical-fast");
+  assert.equal(result.chunks[0].id, "onboarding");
+  assert.equal(providerCalls, 0);
 });
 
 test("mantém a consulta disponível com busca lexical se embeddings falharem", async () => {
@@ -116,7 +152,7 @@ test("mantém a consulta disponível com busca lexical se embeddings falharem", 
   };
   const retriever = new HybridRetriever(
     unavailableProvider,
-    { limit: 1 },
+    { limit: 1, lexicalFastPathScore: 1.1 },
     { warn() {} },
   );
 

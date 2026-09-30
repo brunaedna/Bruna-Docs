@@ -9,6 +9,7 @@ import type {
 type RetrieverOptions = {
   limit?: number;
   minimumScore?: number;
+  lexicalFastPathScore?: number;
 };
 
 type WarningLogger = Pick<Console, "warn">;
@@ -34,6 +35,7 @@ export class HybridRetriever {
   private readonly provider: EmbeddingProvider;
   private readonly limit: number;
   private readonly minimumScore: number;
+  private readonly lexicalFastPathScore: number;
   private readonly logger: WarningLogger;
 
   constructor(
@@ -44,6 +46,7 @@ export class HybridRetriever {
     this.provider = provider;
     this.limit = options.limit ?? 6;
     this.minimumScore = options.minimumScore ?? 0.2;
+    this.lexicalFastPathScore = options.lexicalFastPathScore ?? 0.5;
     this.logger = logger;
   }
 
@@ -52,6 +55,16 @@ export class HybridRetriever {
     chunks: RagChunk[],
   ): Promise<RetrievalResult> {
     if (!chunks.length) return { chunks: [], strategy: "lexical" };
+
+    const lexicalScores = chunks.map((chunk) =>
+      lexicalSimilarity(question, chunk.text),
+    );
+    if (Math.max(...lexicalScores) >= this.lexicalFastPathScore) {
+      return {
+        chunks: selectBest(chunks, lexicalScores, this.limit, 0.01),
+        strategy: "lexical-fast",
+      };
+    }
 
     try {
       const [documentEmbeddings, queryEmbedding] = await Promise.all([
@@ -80,12 +93,7 @@ export class HybridRetriever {
         reason: error instanceof Error ? error.message : "unknown",
       });
       return {
-        chunks: selectBest(
-          chunks,
-          chunks.map((chunk) => lexicalSimilarity(question, chunk.text)),
-          this.limit,
-          0.01,
-        ),
+        chunks: selectBest(chunks, lexicalScores, this.limit, 0.01),
         strategy: "lexical",
       };
     }

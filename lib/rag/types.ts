@@ -19,7 +19,7 @@ export type RetrievedChunk = RagChunk & {
 
 export type RetrievalResult = {
   chunks: RetrievedChunk[];
-  strategy: "vector" | "lexical";
+  strategy: "vector" | "lexical" | "lexical-fast";
 };
 
 export interface EmbeddingProvider {

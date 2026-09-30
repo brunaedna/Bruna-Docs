@@ -158,9 +158,37 @@ test("vincula uma fonte ao trecho recuperado e preserva sua pontuação", () => 
     documentId: "manual",
     title: "Manual interno",
     excerpt: "O prazo é de cinco dias.",
+    context: "O prazo é de cinco dias.",
     location: "Trecho 1",
     score: 0.8765,
   });
+});
+
+test("limita o contexto exibido sem remover a passagem utilizada", () => {
+  const excerpt = "A resposta está neste ponto do documento.";
+  const longText = `${"contexto anterior ".repeat(60)}${excerpt}${" contexto posterior".repeat(60)}`;
+  const [source] = mapTrustedSources(
+    {
+      found: true,
+      answer: "Resposta",
+      sources: [{ chunkId: "long-chunk", excerpt }],
+    },
+    [document],
+    [
+      {
+        id: "long-chunk",
+        documentId: document.id,
+        title: document.title,
+        text: longText,
+        location: "Trecho 3",
+        index: 2,
+        score: 0.9,
+      },
+    ],
+  );
+
+  assert.ok(source.context.length <= 702);
+  assert.match(source.context, /A resposta está neste ponto do documento\./);
 });
 
 test("limita requisições por chave e libera após a janela", () => {

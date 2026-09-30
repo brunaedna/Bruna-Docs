@@ -7,6 +7,29 @@ type SourcesSidebarProps = {
   onAbout: () => void;
 };
 
+function HighlightedContext({
+  context,
+  excerpt,
+}: Pick<Source, "context" | "excerpt">) {
+  const text = context?.trim() || excerpt;
+  const normalizedText = text.toLocaleLowerCase("pt-BR");
+  const normalizedExcerpt = excerpt.trim().toLocaleLowerCase("pt-BR");
+  const matchIndex = normalizedText.indexOf(normalizedExcerpt);
+
+  if (matchIndex < 0 || !normalizedExcerpt) return <>{text}</>;
+
+  const matchEnd = matchIndex + excerpt.trim().length;
+  return (
+    <>
+      {text.slice(0, matchIndex)}
+      <mark className="rounded bg-[#fff0a8] px-0.5 text-inherit">
+        {text.slice(matchIndex, matchEnd)}
+      </mark>
+      {text.slice(matchEnd)}
+    </>
+  );
+}
+
 export function SourcesSidebar({
   isVisible,
   sources,
@@ -47,8 +70,16 @@ export function SourcesSidebar({
                 <p className="mt-1 text-[11px] text-[var(--muted)]">
                   {source.location}
                 </p>
-                <blockquote className="mt-3 border-l-2 border-[var(--mint)] pl-3 text-[13px] leading-5 text-[#56536d]">
-                  “{source.excerpt}”
+                <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">
+                  Contexto no documento
+                </p>
+                <blockquote className="mt-2 border-l-2 border-[var(--mint)] pl-3 text-[13px] leading-5 text-[#56536d]">
+                  “
+                  <HighlightedContext
+                    context={source.context}
+                    excerpt={source.excerpt}
+                  />
+                  ”
                 </blockquote>
               </article>
             ))}

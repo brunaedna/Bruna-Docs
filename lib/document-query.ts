@@ -152,6 +152,9 @@ export function mapTrustedSources(
         documentId: trustedDocument.id,
         title: trustedDocument.title,
         excerpt: source.excerpt.trim().slice(0, 420),
+        context: chunk
+          ? contextualExcerpt(chunk.text, source.excerpt.trim())
+          : undefined,
         location:
           chunk?.location ??
           `${trustedDocument.type} · trecho identificado pelo Gemini`,
@@ -159,6 +162,19 @@ export function mapTrustedSources(
       },
     ];
   });
+}
+
+function contextualExcerpt(text: string, excerpt: string, limit = 700) {
+  const cleanText = text.trim();
+  if (cleanText.length <= limit) return cleanText;
+
+  const matchIndex = cleanText
+    .toLocaleLowerCase("pt-BR")
+    .indexOf(excerpt.toLocaleLowerCase("pt-BR"));
+  const center = matchIndex >= 0 ? matchIndex + excerpt.length / 2 : limit / 2;
+  const start = Math.max(0, Math.floor(center - limit / 2));
+  const end = Math.min(cleanText.length, start + limit);
+  return `${start > 0 ? "…" : ""}${cleanText.slice(start, end).trim()}${end < cleanText.length ? "…" : ""}`;
 }
 
 export function createRateLimiter(maxRequests = 12, windowMs = 10 * 60 * 1000) {

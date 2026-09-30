@@ -10,9 +10,10 @@ O **Bruna Docs** é um assistente de consulta documental com inteligência artif
 - Consulta de um documento específico ou de toda a biblioteca.
 - Fragmentação dos documentos com texto extraído em trechos com sobreposição controlada.
 - Recuperação semântica por embeddings antes da geração da resposta.
+- Atalho lexical para perguntas diretas, evitando chamadas de embeddings desnecessárias.
 - Busca lexical como contingência quando o serviço de embeddings está indisponível.
 - Respostas no mesmo idioma da pergunta.
-- Identificação e exibição das fontes utilizadas.
+- Identificação das fontes, contexto original e destaque visual do trecho utilizado.
 - Extração de texto de documentos Word diretamente no navegador.
 - Processamento de PDFs pelo Gemini.
 - Limites de tamanho e quantidade de documentos para proteger a demonstração.
@@ -26,7 +27,9 @@ Documento selecionado
         ↓
 Divisão em trechos
         ↓
-Embeddings do documento e da pergunta
+Correspondência textual direta?
+        ├─ sim → seleção imediata do contexto
+        └─ não → embeddings do documento e da pergunta
         ↓
 Ranking por similaridade e seleção do contexto
         ↓
@@ -35,11 +38,13 @@ Geração fundamentada com Google Gemini
 Resposta + trechos usados como fonte
 ```
 
-Os embeddings são processados durante cada consulta e não são armazenados. Essa
-decisão preserva o comportamento privado da demonstração, em que os documentos
-permanecem somente na sessão atual. A arquitetura deixa o mecanismo de recuperação
-isolado atrás de interfaces, permitindo substituir essa estratégia por um índice
-persistente no futuro sem alterar a rota ou a interface.
+Quando a pergunta possui correspondência textual forte, o contexto é selecionado
+sem uma chamada adicional à API de embeddings. Nos demais casos, os embeddings são
+processados durante a consulta e não são armazenados. Essa decisão preserva o
+comportamento privado da demonstração, em que os documentos permanecem somente na
+sessão atual. A arquitetura deixa o mecanismo de recuperação isolado atrás de
+interfaces, permitindo substituir essa estratégia por um índice persistente no
+futuro sem alterar a rota ou a interface.
 
 Arquivos PDF enviados sem texto previamente extraído continuam sendo analisados
 diretamente pelo recurso multimodal do Gemini. TXT, Markdown, Word e os documentos

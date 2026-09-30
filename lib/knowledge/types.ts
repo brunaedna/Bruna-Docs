@@ -14,6 +14,7 @@ export type Source = {
   documentId: string;
   title: string;
   excerpt: string;
+  context?: string;
   location: string;
   score: number;
 };

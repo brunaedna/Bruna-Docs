@@ -14,6 +14,8 @@ test("adiciona um documento e responde com a fonte utilizada", async ({
             documentId: document.id,
             title: document.title,
             excerpt: "Atendimento: segunda a sexta, das 9h às 18h.",
+            context:
+              "Nossa central possui atendimento humano. Atendimento: segunda a sexta, das 9h às 18h. Aos feriados, não há expediente.",
             location: "Documento enviado",
             score: 1,
           },
@@ -42,4 +44,8 @@ test("adiciona um documento e responde com a fonte utilizada", async ({
   await expect(
     page.getByText("Atendimento: segunda a sexta, das 9h às 18h."),
   ).toBeVisible();
+  await expect(page.getByText("Contexto no documento")).toBeVisible();
+  await expect(page.locator("mark")).toHaveText(
+    "Atendimento: segunda a sexta, das 9h às 18h.",
+  );
 });
